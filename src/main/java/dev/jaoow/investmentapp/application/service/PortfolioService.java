@@ -1,0 +1,76 @@
+package dev.jaoow.investmentapp.application.service;
+
+import dev.jaoow.investmentapp.application.dto.request.PortfolioRequest;
+import dev.jaoow.investmentapp.application.dto.response.PortfolioResponse;
+import dev.jaoow.investmentapp.domain.entity.Portfolio;
+import dev.jaoow.investmentapp.domain.repository.PortfolioRepository;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class PortfolioService {
+    private final PortfolioRepository portfolioRepository;
+    private final ModelMapper modelMapper;
+
+    public PortfolioService(PortfolioRepository portfolioRepository, ModelMapper modelMapper) {
+        this.portfolioRepository = portfolioRepository;
+        this.modelMapper = modelMapper;
+    }
+
+    // Get a portfolio by ID
+    @Transactional(readOnly = true)
+    public PortfolioResponse getPortfolio(Long id) {
+        Portfolio portfolio = portfolioRepository.findById(id).orElseThrow(() -> new RuntimeException("Portfolio not found"));
+        return modelMapper.map(portfolio, PortfolioResponse.class);
+    }
+
+    // Get all portfolios
+    @Transactional(readOnly = true)
+    public List<PortfolioResponse> getAllPortfolios() {
+        return portfolioRepository.findAll().stream()
+                .map(portfolio -> modelMapper.map(portfolio, PortfolioResponse.class))
+                .collect(Collectors.toList());
+    }
+
+    // Get all portfolios with pagination
+    @Transactional(readOnly = true)
+    public Page<PortfolioResponse> getAllPortfolios(Pageable pageable) {
+        return portfolioRepository.findAll(pageable).map(portfolio -> modelMapper.map(portfolio, PortfolioResponse.class));
+    }
+
+    // Create a new portfolio
+    @Transactional
+    public PortfolioResponse createPortfolio(PortfolioRequest portfolioRequest) {
+        Portfolio portfolio = modelMapper.map(portfolioRequest, Portfolio.class);
+        portfolio = portfolioRepository.save(portfolio);
+        return modelMapper.map(portfolio, PortfolioResponse.class);
+    }
+
+    // Update an existing portfolio
+    @Transactional
+    public PortfolioResponse updatePortfolio(Long portfolioId, PortfolioRequest portfolioRequest) {
+        Portfolio portfolio = portfolioRepository.findById(portfolioId)
+                .orElseThrow(() -> new RuntimeException("Portfolio not found"));
+
+        portfolio.setName(portfolioRequest.getName());
+        portfolio = portfolioRepository.save(portfolio);
+
+        return modelMapper.map(portfolio, PortfolioResponse.class);
+    }
+
+    // Delete a portfolio by ID
+    @Transactional
+    public void deletePortfolio(Long id) {
+        Portfolio portfolio = portfolioRepository.findById(id).orElseThrow(() -> new RuntimeException("Portfolio not found"));
+
+        // Ensure all asset movements are removed when the portfolio is deleted
+        portfolio.getAssetMovements().clear();
+        portfolioRepository.delete(portfolio);
+    }
+}

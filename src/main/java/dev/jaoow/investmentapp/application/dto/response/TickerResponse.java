@@ -1,0 +1,13 @@
+package dev.jaoow.investmentapp.application.dto.response;
+
+import lombok.Data;
+import java.math.BigDecimal;
+
+@Data
+public class TickerResponse {
+    private String symbol;
+    private String category;
+    private String sector;
+    private String subSector;
+    private BigDecimal priceCeiling;
+}

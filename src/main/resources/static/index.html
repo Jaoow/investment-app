@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
+</head>
+<body class="bg-gray-100 p-8">
+
+<div class="container mx-auto">
+    <h1 class="text-2xl font-bold mb-6">Portfolio Summary</h1>
+    <div id="portfolio-summary" class="mb-6"></div>
+
+    <h2 class="text-xl font-bold mb-4">Transactions</h2>
+    <button id="add-transaction-btn" class="bg-blue-500 text-white px-4 py-2 rounded mb-4">Add Transaction</button>
+    <table class="table-auto w-full bg-white shadow-md rounded">
+        <thead>
+        <tr>
+            <th class="border px-4 py-2">Ticker</th>
+            <th class="border px-4 py-2">Quantity</th>
+            <th class="border px-4 py-2">Price</th>
+            <th class="border px-4 py-2">Date</th>
+            <th class="border px-4 py-2">Type</th>
+        </tr>
+        </thead>
+        <tbody id="transactions"></tbody>
+    </table>
+
+    <h2 class="text-xl font-bold mt-8 mb-4">Tickers</h2>
+    <button id="add-ticker-btn" class="bg-green-500 text-white px-4 py-2 rounded mb-4">Add Ticker</button>
+    <table class="table-auto w-full bg-white shadow-md rounded">
+        <thead>
+        <tr>
+            <th class="border px-4 py-2">Symbol</th>
+            <th class="border px-4 py-2">Category</th>
+            <th class="border px-4 py-2">Sector</th>
+            <th class="border px-4 py-2">Sub-Sector</th>
+            <th class="border px-4 py-2">Price Ceiling</th>
+        </tr>
+        </thead>
+        <tbody id="tickers"></tbody>
+    </table>
+
+    <h2 class="text-xl font-bold mt-8 mb-4">Rebalance Recommendations</h2>
+    <div id="rebalancing-recommendations" class="bg-white shadow-md rounded p-4"></div>
+</div>
+
+<!-- Transaction Modal -->
+<div id="transaction-modal" class="fixed inset-0 flex items-center justify-center hidden bg-gray-900 bg-opacity-50">
+    <div class="bg-white rounded-lg overflow-hidden shadow-xl w-96">
+        <div class="px-6 py-4">
+            <h3 class="text-lg font-bold mb-4">Add Transaction</h3>
+            <form id="transaction-form">
+                <label class="block mb-2">Ticker</label>
+                <input type="text" id="ticker" class="w-full border rounded px-3 py-2 mb-4" required>
+
+                <label class="block mb-2">Quantity</label>
+                <input type="number" id="quantity" class="w-full border rounded px-3 py-2 mb-4" required>
+
+                <label class="block mb-2">Price</label>
+                <input type="number" id="price" class="w-full border rounded px-3 py-2 mb-4" required>
+
+                <label class="block mb-2">Date</label>
+                <input type="date" id="date" class="w-full border rounded px-3 py-2 mb-4" required>
+
+                <label class="block mb-2">Type</label>
+                <select id="type" class="w-full border rounded px-3 py-2 mb-4" required>
+                    <option value="buy">Buy</option>
+                    <option value="sell">Sell</option>
+                </select>
+
+                <div class="flex justify-end">
+                    <button type="button" id="transaction-cancel-btn" class="bg-gray-400 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Add Transaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Ticker Modal -->
+<div id="ticker-modal" class="fixed inset-0 flex items-center justify-center hidden bg-gray-900 bg-opacity-50">
+    <div class="bg-white rounded-lg overflow-hidden shadow-xl w-96">
+        <div class="px-6 py-4">
+            <h3 class="text-lg font-bold mb-4">Add Ticker</h3>
+            <form id="ticker-form">
+                <label class="block mb-2">Symbol</label>
+                <input type="text" id="ticker-symbol" class="w-full border rounded px-3 py-2 mb-4" required>
+
+                <label class="block mb-2">Category</label>
+                <input type="text" id="category" class="w-full border rounded px-3 py-2 mb-4" required>
+
+                <label class="block mb-2">Sector</label>
+                <input type="text" id="sector" class="w-full border rounded px-3 py-2 mb-4" required>
+
+                <label class="block mb-2">Sub-Sector</label>
+                <input type="text" id="sub-sector" class="w-full border rounded px-3 py-2 mb-4" required>
+
+                <label class="block mb-2">Price Ceiling</label>
+                <input type="number" id="price-ceiling" class="w-full border rounded px-3 py-2 mb-4" required>
+
+                <div class="flex justify-end">
+                    <button type="button" id="ticker-cancel-btn" class="bg-gray-400 text-white px-4 py-2 rounded mr-2">Cancel</button>
+                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">Add Ticker</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://localhost:8080/v1'; // Change to your API base URL
+
+    async function fetchSummary(portfolioId) {
+        const response = await fetch(`${API_BASE_URL}/portfolio/${portfolioId}/summary`);
+        const summary = await response.json();
+        
+        document.getElementById('portfolio-summary').innerHTML = `
+    <div class="flex items-center p-4 bg-white shadow-md rounded-lg mb-4">
+        <i class="fas fa-wallet text-indigo-600 text-2xl mr-4"></i>
+        <div>
+            <p class="text-gray-600 font-semibold">Current Value</p>
+            <p class="text-gray-800">R$ ${summary.currentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        </div>
+    </div>
+    <div class="flex items-center p-4 bg-white shadow-md rounded-lg mb-4">
+        <i class="fas fa-chart-line text-green-600 text-2xl mr-4"></i>
+        <div>
+            <p class="text-gray-600 font-semibold">Percentage Change</p>
+            <p class="text-gray-800">${summary.percentageChange.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</p>
+        </div>
+    </div>
+    <div class="flex items-center p-4 bg-white shadow-md rounded-lg mb-4">
+        <i class="fas fa-id-card text-blue-600 text-2xl mr-4"></i>
+        <div>
+            <p class="text-gray-600 font-semibold">Portfolio ID</p>
+            <p class="text-gray-800">${summary.portfolioId}</p>
+        </div>
+    </div>
+    <div class="flex items-center p-4 bg-white shadow-md rounded-lg mb-4">
+        <i class="fas fa-money-bill-wave text-yellow-600 text-2xl mr-4"></i>
+        <div>
+            <p class="text-gray-600 font-semibold">Profit/Loss</p>
+            <p class="text-gray-800">R$ ${summary.profitOrLoss.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        </div>
+    </div>
+    <div class="flex items-center p-4 bg-white shadow-md rounded-lg mb-4">
+        <i class="fas fa-piggy-bank text-pink-600 text-2xl mr-4"></i>
+        <div>
+            <p class="text-gray-600 font-semibold">Total Invested</p>
+            <p class="text-gray-800">R$ ${summary.totalInvested.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        </div>
+    </div>
+`;
+
+    }
+
+    async function fetchTransactions(portfolioId) {
+        const response = await fetch(`${API_BASE_URL}/portfolio/${portfolioId}/movement`);
+        const transactions = await response.json();
+        const transactionsHtml = transactions.map(transaction => `
+                <tr>
+                    <td class="border px-4 py-2">${transaction.tickerSymbol}</td>
+                    <td class="border px-4 py-2">${transaction.quantity}</td>
+                    <td class="border px-4 py-2">${transaction.price}</td>
+                    <td class="border px-4 py-2">${transaction.date}</td>
+                    <td class="border px-4 py-2">${transaction.type}</td>
+                </tr>
+            `).join('');
+        document.getElementById('transactions').innerHTML = transactionsHtml;
+    }
+
+    async function fetchTickers() {
+        const response = await fetch(`${API_BASE_URL}/ticker`);
+        const tickers = await response.json();
+        const tickersHtml = tickers.map(ticker => `
+                <tr>
+                    <td class="border px-4 py-2">${ticker.symbol}</td>
+                    <td class="border px-4 py-2">${ticker.category}</td>
+                    <td class="border px-4 py-2">${ticker.sector}</td>
+                    <td class="border px-4 py-2">${ticker.subSector}</td>
+                    <td class="border px-4 py-2">${ticker.priceCeiling}</td>
+                </tr>
+            `).join('');
+        document.getElementById('tickers').innerHTML = tickersHtml;
+    }
+
+    async function fetchRebalanceRecommendations(portfolioId) {
+        const response = await fetch(`${API_BASE_URL}/portfolio/${portfolioId}/rebalance`);
+        const recommendations = await response.json();
+        const recommendationsHtml = recommendations.map(recommendation => `
+                <p>${recommendation.action} ${recommendation.ticker} - ${recommendation.reason}</p>
+            `).join('');
+        document.getElementById('rebalancing-recommendations').innerHTML = recommendationsHtml;
+    }
+
+    const portfolioId = 1; // Replace with the actual portfolio ID
+
+    // Fetch and populate data
+    fetchSummary(portfolioId);
+    fetchTransactions(portfolioId);
+    fetchTickers();
+    fetchRebalanceRecommendations(portfolioId);
+
+    // Modal Logic
+    const transactionModal = document.getElementById('transaction-modal');
+    const tickerModal = document.getElementById('ticker-modal');
+
+    document.getElementById('add-transaction-btn').addEventListener('click', () => {
+        transactionModal.classList.remove('hidden');
+    });
+
+    document.getElementById('add-ticker-btn').addEventListener('click', () => {
+        tickerModal.classList.remove('hidden');
+    });
+
+    document.getElementById('transaction-cancel-btn').addEventListener('click', () => {
+        transactionModal.classList.add('hidden');
+    });
+
+    document.getElementById('ticker-cancel-btn').addEventListener('click', () => {
+        tickerModal.classList.add('hidden');
+    });
+
+    document.getElementById('transaction-form').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const transactionData = {
+            ticker: document.getElementById('ticker').value,
+            quantity: document.getElementById('quantity').value,
+            price: document.getElementById('price').value,
+            date: document.getElementById('date').value,
+            type: document.getElementById('type').value
+        };
+        await fetch(`${API_BASE_URL}/${portfolioId}/movement`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(transactionData)
+        });
+        transactionModal.classList.add('hidden');
+        await fetchTransactions(portfolioId);
+    });
+
+    document.getElementById('ticker-form').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const tickerData = {
+            symbol: document.getElementById('ticker-symbol').value,
+            category: document.getElementById('category').value,
+            sector: document.getElementById('sector').value,
+            subSector: document.getElementById('sub-sector').value,
+            priceCeiling: document.getElementById('price-ceiling').value
+        };
+        await fetch(`${API_BASE_URL}/${portfolioId}/ticker`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(tickerData)
+        });
+        tickerModal.classList.add('hidden');
+        await fetchTickers();
+    });
+
+</script>
+</body>
+</html>
