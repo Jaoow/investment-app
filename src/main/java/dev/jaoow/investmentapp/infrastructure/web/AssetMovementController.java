@@ -2,7 +2,8 @@ package dev.jaoow.investmentapp.infrastructure.web;
 
 import dev.jaoow.investmentapp.application.dto.request.AssetMovementRequest;
 import dev.jaoow.investmentapp.application.dto.response.AssetMovementResponse;
-import dev.jaoow.investmentapp.application.service.AssetMovementService;
+import dev.jaoow.investmentapp.application.service.movement.AssetMovementImportService;
+import dev.jaoow.investmentapp.application.service.movement.AssetMovementService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -14,9 +15,11 @@ import java.util.List;
 @RequestMapping("/v1/portfolio/{portfolioId}/movement")
 public class AssetMovementController {
     private final AssetMovementService assetMovementService;
+    private final AssetMovementImportService assetMovementImportService;
 
-    public AssetMovementController(AssetMovementService assetMovementService) {
+    public AssetMovementController(AssetMovementService assetMovementService, AssetMovementImportService assetMovementImportService) {
         this.assetMovementService = assetMovementService;
+        this.assetMovementImportService = assetMovementImportService;
     }
 
     @GetMapping
@@ -33,8 +36,9 @@ public class AssetMovementController {
     @PostMapping("/import")
     @ResponseStatus(HttpStatus.CREATED)
     public List<AssetMovementResponse> importAssetMovements(@PathVariable Long portfolioId, @RequestParam("file") MultipartFile file) {
-        return assetMovementService.importAssetMovements(portfolioId, file);
+        return assetMovementImportService.importAssetMovements(portfolioId, file);
     }
+
 
     @GetMapping("/{movementId}")
     public AssetMovementResponse getAssetMovement(@PathVariable Long portfolioId, @PathVariable Long movementId) {

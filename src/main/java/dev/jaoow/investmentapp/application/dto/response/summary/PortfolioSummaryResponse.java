@@ -1,10 +1,12 @@
 package dev.jaoow.investmentapp.application.dto.response.summary;
 
+import lombok.Builder;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.util.List;
 
 @Data
+@Builder
 public class PortfolioSummaryResponse {
     private Long portfolioId;
     private BigDecimal totalInvested;

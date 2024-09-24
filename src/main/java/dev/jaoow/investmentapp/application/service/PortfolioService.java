@@ -23,28 +23,24 @@ public class PortfolioService {
         this.modelMapper = modelMapper;
     }
 
-    // Get a portfolio by ID
     @Transactional(readOnly = true)
     public PortfolioResponse getPortfolio(Long id) {
         Portfolio portfolio = portfolioRepository.findById(id).orElseThrow(() -> new RuntimeException("Portfolio not found"));
         return modelMapper.map(portfolio, PortfolioResponse.class);
     }
 
-    // Get all portfolios
     @Transactional(readOnly = true)
     public List<PortfolioResponse> getAllPortfolios() {
         return portfolioRepository.findAll().stream()
                 .map(portfolio -> modelMapper.map(portfolio, PortfolioResponse.class))
-                .collect(Collectors.toList());
+                .toList();
     }
 
-    // Get all portfolios with pagination
     @Transactional(readOnly = true)
     public Page<PortfolioResponse> getAllPortfolios(Pageable pageable) {
         return portfolioRepository.findAll(pageable).map(portfolio -> modelMapper.map(portfolio, PortfolioResponse.class));
     }
 
-    // Create a new portfolio
     @Transactional
     public PortfolioResponse createPortfolio(PortfolioRequest portfolioRequest) {
         Portfolio portfolio = modelMapper.map(portfolioRequest, Portfolio.class);
@@ -52,7 +48,6 @@ public class PortfolioService {
         return modelMapper.map(portfolio, PortfolioResponse.class);
     }
 
-    // Update an existing portfolio
     @Transactional
     public PortfolioResponse updatePortfolio(Long portfolioId, PortfolioRequest portfolioRequest) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
@@ -64,7 +59,6 @@ public class PortfolioService {
         return modelMapper.map(portfolio, PortfolioResponse.class);
     }
 
-    // Delete a portfolio by ID
     @Transactional
     public void deletePortfolio(Long id) {
         Portfolio portfolio = portfolioRepository.findById(id).orElseThrow(() -> new RuntimeException("Portfolio not found"));

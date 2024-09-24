@@ -68,8 +68,8 @@
 
                 <label class="block mb-2">Type</label>
                 <select id="type" class="w-full border rounded px-3 py-2 mb-4" required>
-                    <option value="buy">Buy</option>
-                    <option value="sell">Sell</option>
+                    <option value="BUY">Buy</option>
+                    <option value="SELL">Sell</option>
                 </select>
 
                 <div class="flex justify-end">
@@ -156,6 +156,48 @@
     </div>
 `;
 
+        const assetSummariesHtml = summary.assetSummaries.map(asset => `
+    <div class="flex flex-col bg-white shadow-lg rounded-lg mb-6 p-6 hover:shadow-xl transition-shadow duration-300">
+        <!-- Header com Ticker e Logo -->
+        <div class="flex justify-between items-center border-b pb-3 mb-4">
+            <div>
+                <p class="font-bold text-xl text-gray-800">${asset.tickerSymbol} - ${asset.longName}</p>
+                <p class="text-sm text-gray-500">${asset.shortName}</p>
+            </div>
+            <img src="${asset.logourl}" alt="logo" class="w-12 h-12 rounded-full object-contain">
+        </div>
+
+        <!-- Seção de Informações Financeiras -->
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <p class="text-sm text-gray-600"><span class="font-semibold text-gray-700">Total Invested:</span> R$ ${asset.totalInvested.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p class="text-sm text-gray-600"><span class="font-semibold text-gray-700">Current Value:</span> R$ ${asset.currentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p class="text-sm text-gray-600"><span class="font-semibold text-gray-700">Quantity:</span> ${asset.quantity}</p>
+            <p class="text-sm text-gray-600"><span class="font-semibold text-gray-700">Average Price:</span> R$ ${asset.averagePrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        </div>
+
+        <!-- Seção de Performance -->
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <p class="text-sm text-${asset.profitOrLoss >= 0 ? 'green-600' : 'red-600'}"><span class="font-semibold text-gray-700">Profit/Loss:</span> R$ ${asset.profitOrLoss.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p class="text-sm text-${asset.percentageChange >= 0 ? 'green-600' : 'red-600'}"><span class="font-semibold text-gray-700">Percentage Change:</span> ${asset.percentageChange}%</p>
+            <p class="text-sm text-gray-600"><span class="font-semibold text-gray-700">Regular Market Price:</span> R$ ${asset.regularMarketPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p class="text-sm text-gray-600"><span class="font-semibold text-gray-700">Regular Market Change:</span> ${asset.regularMarketChange}</p>
+        </div>
+
+        <!-- Seção de Informações Adicionais -->
+        <div class="grid grid-cols-1 gap-2">
+            <p class="text-sm text-gray-600"><span class="font-semibold text-gray-700">Sector:</span> ${asset.sector}, <span class="font-semibold text-gray-700">Sub-Sector:</span> ${asset.subSector}</p>
+            <p class="text-sm text-gray-600"><span class="font-semibold text-gray-700">Price Ceiling:</span> R$ ${asset.priceCeiling}</p>
+        </div>
+    </div>
+`).join('');
+
+
+
+        document.getElementById('portfolio-summary').innerHTML += `
+        <h2 class="text-xl font-bold mt-8 mb-4">Asset Summaries</h2>
+        ${assetSummariesHtml}
+    `;
+
     }
 
     async function fetchTransactions(portfolioId) {
@@ -201,9 +243,9 @@
 
     // Fetch and populate data
     fetchSummary(portfolioId);
-    fetchTransactions(portfolioId);
-    fetchTickers();
-    fetchRebalanceRecommendations(portfolioId);
+    // fetchTransactions(portfolioId);
+    // fetchTickers();
+    // fetchRebalanceRecommendations(portfolioId);
 
     // Modal Logic
     const transactionModal = document.getElementById('transaction-modal');
@@ -228,13 +270,13 @@
     document.getElementById('transaction-form').addEventListener('submit', async function(event) {
         event.preventDefault();
         const transactionData = {
-            ticker: document.getElementById('ticker').value,
+            tickerSymbol: document.getElementById('ticker').value,
             quantity: document.getElementById('quantity').value,
             price: document.getElementById('price').value,
             date: document.getElementById('date').value,
             type: document.getElementById('type').value
         };
-        await fetch(`${API_BASE_URL}/${portfolioId}/movement`, {
+        await fetch(`${API_BASE_URL}/portfolio/${portfolioId}/movement`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

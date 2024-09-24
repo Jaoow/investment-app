@@ -4,7 +4,7 @@ import dev.jaoow.investmentapp.application.dto.request.PortfolioRequest;
 import dev.jaoow.investmentapp.application.dto.response.PortfolioResponse;
 import dev.jaoow.investmentapp.application.dto.response.summary.PortfolioSummaryResponse;
 import dev.jaoow.investmentapp.application.service.PortfolioService;
-import dev.jaoow.investmentapp.application.service.SummaryService;
+import dev.jaoow.investmentapp.application.service.summary.PortfolioSummaryService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -14,12 +14,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/portfolio")
 public class PortfolioController {
-    private final PortfolioService portfolioService;
-    private final SummaryService summaryService;
 
-    public PortfolioController(PortfolioService portfolioService, SummaryService summaryService) {
+    private final PortfolioService portfolioService;
+    private final PortfolioSummaryService portfolioSummaryService;
+
+    public PortfolioController(PortfolioService portfolioService, PortfolioSummaryService portfolioSummaryService) {
         this.portfolioService = portfolioService;
-        this.summaryService = summaryService;
+        this.portfolioSummaryService = portfolioSummaryService;
     }
 
     @GetMapping
@@ -52,6 +53,6 @@ public class PortfolioController {
     @GetMapping("/{portfolioId}/summary")
     public PortfolioSummaryResponse getPortfolioSummary(@PathVariable Long portfolioId,
                                                         @RequestParam(required = false) String category) {
-        return summaryService.getPortfolioSummary(portfolioId, category);
+        return portfolioSummaryService.getPortfolioSummary(portfolioId, category);
     }
 }

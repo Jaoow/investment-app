@@ -1,10 +1,15 @@
 package dev.jaoow.investmentapp.application.service;
 
+import dev.jaoow.investmentapp.application.dto.request.TickerFilterRequest;
 import dev.jaoow.investmentapp.application.dto.request.TickerRequest;
+import dev.jaoow.investmentapp.application.dto.response.SectorResponse;
 import dev.jaoow.investmentapp.application.dto.response.TickerResponse;
 import dev.jaoow.investmentapp.domain.entity.Ticker;
 import dev.jaoow.investmentapp.domain.repository.TickerRepository;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,22 +26,19 @@ public class TickerService {
         this.modelMapper = modelMapper;
     }
 
-    // Get a ticker by symbol
     @Transactional(readOnly = true)
     public TickerResponse getTicker(String symbol) {
         Ticker ticker = tickerRepository.findById(symbol).orElseThrow(() -> new RuntimeException("Ticker not found"));
         return modelMapper.map(ticker, TickerResponse.class);
     }
 
-    // Get all tickers
     @Transactional(readOnly = true)
     public List<TickerResponse> getAllTickers() {
         return tickerRepository.findAll().stream()
                 .map(ticker -> modelMapper.map(ticker, TickerResponse.class))
-                .collect(Collectors.toList());
+                .toList();
     }
 
-    // Create a new ticker
     @Transactional
     public TickerResponse createTicker(TickerRequest tickerRequest) {
         Ticker ticker = modelMapper.map(tickerRequest, Ticker.class);
@@ -44,7 +46,6 @@ public class TickerService {
         return modelMapper.map(ticker, TickerResponse.class);
     }
 
-    // Update an existing ticker
     @Transactional
     public TickerResponse updateTicker(String symbol, TickerRequest tickerRequest) {
         Ticker ticker = tickerRepository.findById(symbol)
@@ -59,10 +60,39 @@ public class TickerService {
         return modelMapper.map(ticker, TickerResponse.class);
     }
 
-    // Delete a ticker by symbol
     @Transactional
     public void deleteTicker(String symbol) {
         Ticker ticker = tickerRepository.findById(symbol).orElseThrow(() -> new RuntimeException("Ticker not found"));
         tickerRepository.delete(ticker);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SectorResponse> getAllSectorsWithSubSectors() {
+        List<String> sectors = tickerRepository.findAllSectors();
+        return sectors.stream()
+                .map(sector -> {
+                    List<String> subSectors = tickerRepository.findAllSubSectorsBySector(sector);
+                    return new SectorResponse(sector, subSectors);
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TickerResponse> searchTickers(TickerFilterRequest filterRequest, Pageable pageable) {
+        Page<Ticker> tickersPage = tickerRepository.search(
+                filterRequest.getSymbol(),
+                filterRequest.getCategory(),
+                filterRequest.getSector(),
+                filterRequest.getSubSector(),
+                pageable
+        );
+
+        return new PageImpl<>(
+                tickersPage.stream()
+                        .map(ticker -> modelMapper.map(ticker, TickerResponse.class))
+                        .collect(Collectors.toList()),
+                pageable,
+                tickersPage.getTotalElements()
+        );
     }
 }

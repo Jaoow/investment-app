@@ -1,10 +1,11 @@
-package dev.jaoow.investmentapp.application.service;
+package dev.jaoow.investmentapp.application.util;
 
 import dev.jaoow.investmentapp.domain.entity.AssetMovement;
 import dev.jaoow.investmentapp.domain.model.MovementType;
-import dev.jaoow.investmentapp.domain.repository.AssetMovementRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,13 +14,12 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
-public class AssetMovementImportService {
+public class AssetMovementFileProcessor {
+
+    private static final Logger logger = LoggerFactory.getLogger(AssetMovementFileProcessor.class);
 
     private static final String DATE_COLUMN = "Data do Negócio";
     private static final String TYPE_COLUMN = "Tipo de Movimentação";
@@ -38,11 +38,15 @@ public class AssetMovementImportService {
             Map<String, Integer> columnIndexes = getColumnIndexes(sheet.getRow(0));
 
             for (Row row : sheet) {
-                if (row.getRowNum() == 0) {
-                    continue; // Skip header
+                if (row.getRowNum() == 0 || isRowEmpty(row)) {
+                    continue; // Skip header and empty rows
                 }
-                AssetMovement assetMovement = mapRowToAssetMovement(row, columnIndexes);
-                assetMovements.add(assetMovement);
+                try {
+                    AssetMovement assetMovement = mapRowToAssetMovement(row, columnIndexes);
+                    assetMovements.add(assetMovement);
+                } catch (Exception e) {
+                    logger.error("Error processing row {}: {}", row.getRowNum(), e.getMessage());
+                }
             }
         }
         return assetMovements;
@@ -58,12 +62,28 @@ public class AssetMovementImportService {
 
     private AssetMovement mapRowToAssetMovement(Row row, Map<String, Integer> columnIndexes) {
         AssetMovement assetMovement = new AssetMovement();
-        assetMovement.setDate(LocalDate.parse(row.getCell(columnIndexes.get(DATE_COLUMN)).getStringCellValue(), formatter));
+        assetMovement.setDate(parseDate(row, columnIndexes.get(DATE_COLUMN)));
         assetMovement.setType(mapMovementType(row.getCell(columnIndexes.get(TYPE_COLUMN)).getStringCellValue()));
         assetMovement.setTickerSymbol(removeFractionalIndicator(row.getCell(columnIndexes.get(TICKER_COLUMN)).getStringCellValue()));
-        assetMovement.setQuantity(BigDecimal.valueOf(row.getCell(columnIndexes.get(QUANTITY_COLUMN)).getNumericCellValue()));
-        assetMovement.setPrice(BigDecimal.valueOf(row.getCell(columnIndexes.get(PRICE_COLUMN)).getNumericCellValue()));
+        assetMovement.setQuantity(parseBigDecimal(row, columnIndexes.get(QUANTITY_COLUMN)));
+        assetMovement.setPrice(parseBigDecimal(row, columnIndexes.get(PRICE_COLUMN)));
         return assetMovement;
+    }
+
+    private LocalDate parseDate(Row row, int columnIndex) {
+        Cell cell = row.getCell(columnIndex);
+        if (cell == null || cell.getCellType() != CellType.STRING) {
+            throw new IllegalArgumentException("Invalid date format in row " + row.getRowNum());
+        }
+        return LocalDate.parse(cell.getStringCellValue(), formatter);
+    }
+
+    private BigDecimal parseBigDecimal(Row row, int columnIndex) {
+        Cell cell = row.getCell(columnIndex);
+        if (cell == null || cell.getCellType() != CellType.NUMERIC) {
+            throw new IllegalArgumentException("Invalid numeric value in row " + row.getRowNum());
+        }
+        return BigDecimal.valueOf(cell.getNumericCellValue());
     }
 
     private MovementType mapMovementType(String type) {
@@ -75,9 +95,18 @@ public class AssetMovementImportService {
     }
 
     private String removeFractionalIndicator(String ticker) {
-        if (ticker.endsWith("F")) {
+        if (ticker != null && ticker.endsWith("F")) {
             return ticker.substring(0, ticker.length() - 1);
         }
         return ticker;
+    }
+
+    private boolean isRowEmpty(Row row) {
+        for (Cell cell : row) {
+            if (cell != null && cell.getCellType() != CellType.BLANK) {
+                return false;
+            }
+        }
+        return true;
     }
 }
