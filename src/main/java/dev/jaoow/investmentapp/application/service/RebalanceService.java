@@ -1,6 +1,7 @@
 package dev.jaoow.investmentapp.application.service;
 
 import dev.jaoow.investmentapp.application.dto.response.RebalanceRecommendationResponse;
+import dev.jaoow.investmentapp.application.exception.PortfolioNotFoundException;
 import dev.jaoow.investmentapp.domain.entity.*;
 import dev.jaoow.investmentapp.domain.repository.CategoryAllocationRepository;
 import dev.jaoow.investmentapp.domain.repository.PortfolioRepository;
@@ -29,7 +30,7 @@ public class RebalanceService {
 
     public List<RebalanceRecommendationResponse> generateRebalanceRecommendations(Long portfolioId, String categoryFilter) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
-                .orElseThrow(() -> new RuntimeException("Portfolio not found"));
+                .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
         BigDecimal totalPortfolioValue = calculateTotalPortfolioValue(portfolio, categoryFilter);
 
         List<CategoryAllocation> categoryAllocations = categoryAllocationRepository.findByPortfolioId(portfolioId);

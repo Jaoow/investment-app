@@ -3,6 +3,8 @@ package dev.jaoow.investmentapp.application.service.summary;
 import dev.jaoow.investmentapp.application.dto.response.BrapiQuoteDto;
 import dev.jaoow.investmentapp.application.dto.response.summary.AssetSummaryResponse;
 import dev.jaoow.investmentapp.application.model.AssetConsolidation;
+import dev.jaoow.investmentapp.application.model.BrapiFields;
+import dev.jaoow.investmentapp.application.model.TickerFields;
 import dev.jaoow.investmentapp.domain.entity.Ticker;
 import dev.jaoow.investmentapp.domain.repository.TickerRepository;
 import dev.jaoow.investmentapp.infrastructure.client.BrapiClient;
@@ -69,9 +71,17 @@ public class AssetSummaryService {
     }
 
     private void mapQuoteAndTickerInfo(Optional<Ticker> foundTicker, Optional<BrapiQuoteDto> currentQuote, AssetSummaryResponse assetSummary) {
-        currentQuote.ifPresent(quote -> modelMapper.map(quote, assetSummary));
-        foundTicker.ifPresent(ticker -> modelMapper.map(ticker, assetSummary));
+        currentQuote.ifPresent(quote -> {
+            BrapiFields brapiFields = modelMapper.map(quote, BrapiFields.class);
+            assetSummary.setBrapiFields(brapiFields);
+        });
+
+        foundTicker.ifPresent(ticker -> {
+            TickerFields tickerFields = modelMapper.map(ticker, TickerFields.class);
+            assetSummary.setTickerFields(tickerFields);
+        });
     }
+
 
     private BigDecimal calculatePercentageChange(BigDecimal investedAmount, BigDecimal profitOrLoss) {
         return investedAmount.equals(BigDecimal.ZERO) ? BigDecimal.ZERO :

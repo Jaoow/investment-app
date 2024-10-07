@@ -1,6 +1,8 @@
 package dev.jaoow.investmentapp.application.service.movement;
 
 import dev.jaoow.investmentapp.application.dto.response.AssetMovementResponse;
+import dev.jaoow.investmentapp.application.exception.AssetMovementImportException;
+import dev.jaoow.investmentapp.application.exception.PortfolioNotFoundException;
 import dev.jaoow.investmentapp.application.util.AssetMovementFileProcessor;
 import dev.jaoow.investmentapp.domain.entity.AssetMovement;
 import dev.jaoow.investmentapp.domain.entity.Portfolio;
@@ -34,7 +36,7 @@ public class AssetMovementImportService {
     @Transactional
     public List<AssetMovementResponse> importAssetMovements(Long portfolioId, MultipartFile file) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
-                .orElseThrow(() -> new RuntimeException("Portfolio not found"));
+                .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
         try {
             List<AssetMovement> assetMovements = assetMovementFileProcessor.processExcelFile(file);
@@ -51,7 +53,7 @@ public class AssetMovementImportService {
                     .toList();
 
         } catch (Exception e) {
-            throw new RuntimeException("Error importing asset movements", e);
+            throw new AssetMovementImportException();
         }
     }
 }

@@ -4,6 +4,8 @@ import dev.jaoow.investmentapp.application.dto.request.TickerFilterRequest;
 import dev.jaoow.investmentapp.application.dto.request.TickerRequest;
 import dev.jaoow.investmentapp.application.dto.response.SectorResponse;
 import dev.jaoow.investmentapp.application.dto.response.TickerResponse;
+import dev.jaoow.investmentapp.application.exception.TickerNotFoundException;
+import dev.jaoow.investmentapp.application.exception.InvalidTickerException;
 import dev.jaoow.investmentapp.domain.entity.Ticker;
 import dev.jaoow.investmentapp.domain.repository.TickerRepository;
 import org.modelmapper.ModelMapper;
@@ -28,7 +30,8 @@ public class TickerService {
 
     @Transactional(readOnly = true)
     public TickerResponse getTicker(String symbol) {
-        Ticker ticker = tickerRepository.findById(symbol).orElseThrow(() -> new RuntimeException("Ticker not found"));
+        Ticker ticker = tickerRepository.findById(symbol)
+                .orElseThrow(() -> new TickerNotFoundException("Ticker with symbol '" + symbol + "' not found"));
         return modelMapper.map(ticker, TickerResponse.class);
     }
 
@@ -41,15 +44,19 @@ public class TickerService {
 
     @Transactional
     public TickerResponse createTicker(TickerRequest tickerRequest) {
-        Ticker ticker = modelMapper.map(tickerRequest, Ticker.class);
-        ticker = tickerRepository.save(ticker);
-        return modelMapper.map(ticker, TickerResponse.class);
+        try {
+            Ticker ticker = modelMapper.map(tickerRequest, Ticker.class);
+            ticker = tickerRepository.save(ticker);
+            return modelMapper.map(ticker, TickerResponse.class);
+        } catch (Exception ex) {
+            throw new InvalidTickerException("Error creating ticker: " + ex.getMessage());
+        }
     }
 
     @Transactional
     public TickerResponse updateTicker(String symbol, TickerRequest tickerRequest) {
         Ticker ticker = tickerRepository.findById(symbol)
-                .orElseThrow(() -> new RuntimeException("Ticker not found"));
+                .orElseThrow(() -> new TickerNotFoundException("Ticker with symbol '" + symbol + "' not found"));
 
         ticker.setCategory(tickerRequest.getCategory());
         ticker.setSector(tickerRequest.getSector());
@@ -62,8 +69,7 @@ public class TickerService {
 
     @Transactional
     public void deleteTicker(String symbol) {
-        Ticker ticker = tickerRepository.findById(symbol).orElseThrow(() -> new RuntimeException("Ticker not found"));
-        tickerRepository.delete(ticker);
+        tickerRepository.deleteBySymbol(symbol);
     }
 
     @Transactional(readOnly = true)

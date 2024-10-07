@@ -1,5 +1,9 @@
 package dev.jaoow.investmentapp.application.dto.response.summary;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import dev.jaoow.investmentapp.application.model.BrapiFields;
+import dev.jaoow.investmentapp.application.model.TickerFields;
 import lombok.Builder;
 import lombok.Data;
 
@@ -17,21 +21,9 @@ public class AssetSummaryResponse {
     private BigDecimal profitOrLoss;
     private BigDecimal percentageChange;
 
-    // Fields from Brapi API
-    private String shortName;
-    private String longName;
-    private BigDecimal regularMarketPrice;
-    private BigDecimal regularMarketChange;
-    private BigDecimal regularMarketChangePercent;
-    private BigDecimal regularMarketDayHigh;
-    private BigDecimal regularMarketDayLow;
-    private BigDecimal regularMarketVolume;
-    private BigDecimal regularMarketOpen;
-    private String logourl;
+    @JsonProperty("quoteData")
+    private BrapiFields brapiFields;
 
-    // Fields from Ticker
-    private String category;
-    private String sector;
-    private String subSector;
-    private BigDecimal priceCeiling;
+    @JsonProperty("tickerData")
+    private TickerFields tickerFields;
 }

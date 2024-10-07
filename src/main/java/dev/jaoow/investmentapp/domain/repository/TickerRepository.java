@@ -34,4 +34,6 @@ public interface TickerRepository extends JpaRepository<Ticker, String> {
 
     @Query("SELECT DISTINCT t.subSector FROM Ticker t WHERE t.sector = :sector")
     List<String> findAllSubSectorsBySector(@NonNull String sector);
+
+    void deleteBySymbol(String symbol);
 }

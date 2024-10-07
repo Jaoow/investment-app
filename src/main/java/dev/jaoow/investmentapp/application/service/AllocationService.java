@@ -2,6 +2,7 @@ package dev.jaoow.investmentapp.application.service;
 
 import dev.jaoow.investmentapp.application.dto.request.CategoryAllocationRequest;
 import dev.jaoow.investmentapp.application.dto.response.CategoryAllocationResponse;
+import dev.jaoow.investmentapp.application.exception.PortfolioNotFoundException;
 import dev.jaoow.investmentapp.domain.entity.*;
 import dev.jaoow.investmentapp.domain.model.AssetCategory;
 import dev.jaoow.investmentapp.domain.repository.CategoryAllocationRepository;
@@ -31,7 +32,7 @@ public class AllocationService {
     @Transactional
     public void setCategoryAllocations(Long portfolioId, List<CategoryAllocationRequest> categoryAllocations) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
-                .orElseThrow(() -> new RuntimeException("Portfolio not found"));
+                .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
         categoryAllocationRepository.deleteAllByPortfolioId(portfolioId);
 
