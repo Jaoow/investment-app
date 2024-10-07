@@ -2,6 +2,7 @@ package dev.jaoow.investmentapp.application.service.summary;
 
 import dev.jaoow.investmentapp.application.dto.response.summary.AssetSummaryResponse;
 import dev.jaoow.investmentapp.application.dto.response.summary.PortfolioSummaryResponse;
+import dev.jaoow.investmentapp.application.exception.PortfolioNotFoundException;
 import dev.jaoow.investmentapp.application.service.consolidation.AssetConsolidationService;
 import dev.jaoow.investmentapp.application.model.AssetConsolidation;
 import dev.jaoow.investmentapp.domain.entity.Portfolio;
@@ -35,13 +36,8 @@ public class PortfolioSummaryService {
     }
 
     public PortfolioSummaryResponse getPortfolioSummary(Long portfolioId, String category) {
-        log.info("Fetching portfolio summary for portfolio ID: {}", portfolioId);
-
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
-                .orElseThrow(() -> {
-                    log.error("Portfolio not found with ID: {}", portfolioId);
-                    return new RuntimeException("Portfolio not found");
-                });
+                .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
         List<AssetConsolidation> assetConsolidations = assetConsolidationService.processAssetMovements(portfolio);
         List<AssetConsolidation> filteredAssets = category != null
@@ -58,8 +54,6 @@ public class PortfolioSummaryService {
                 .map(AssetSummaryResponse::getCurrentValue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        log.info("Successfully calculated portfolio summary for portfolio ID: {}", portfolioId);
-
         return buildPortfolioSummary(portfolioId, totalInvested, currentValue, assetSummaries);
     }
 
@@ -71,7 +65,6 @@ public class PortfolioSummaryService {
                 Ticker ticker = optionalTicker.get();
                 return ticker.getCategory().name().equalsIgnoreCase(category);
             } else {
-                log.warn("Ticker not found for symbol: {}", tickerSymbol);
                 return false;
             }
         }).toList();

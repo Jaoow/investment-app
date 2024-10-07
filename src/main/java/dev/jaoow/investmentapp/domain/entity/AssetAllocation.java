@@ -10,11 +10,11 @@ public class AssetAllocation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "category_allocation_id")
-    private CategoryAllocation categoryAllocation;
-
     private String tickerSymbol;
 
     private double targetPercentage;
+
+    @ManyToOne
+    @JoinColumn(name = "category_allocation_id")
+    private CategoryAllocation categoryAllocation;
 }

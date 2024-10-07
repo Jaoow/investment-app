@@ -4,6 +4,8 @@ import dev.jaoow.investmentapp.application.dto.request.TickerFilterRequest;
 import dev.jaoow.investmentapp.application.dto.request.TickerRequest;
 import dev.jaoow.investmentapp.application.dto.response.SectorResponse;
 import dev.jaoow.investmentapp.application.dto.response.TickerResponse;
+import dev.jaoow.investmentapp.application.exception.TickerNotFoundException;
+import dev.jaoow.investmentapp.application.exception.InvalidTickerException;
 import dev.jaoow.investmentapp.domain.entity.Ticker;
 import dev.jaoow.investmentapp.domain.repository.TickerRepository;
 import org.modelmapper.ModelMapper;
@@ -18,6 +20,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class TickerService {
+
     private final TickerRepository tickerRepository;
     private final ModelMapper modelMapper;
 
@@ -28,7 +31,8 @@ public class TickerService {
 
     @Transactional(readOnly = true)
     public TickerResponse getTicker(String symbol) {
-        Ticker ticker = tickerRepository.findById(symbol).orElseThrow(() -> new RuntimeException("Ticker not found"));
+        Ticker ticker = tickerRepository.findById(symbol)
+                .orElseThrow(() -> new TickerNotFoundException(symbol));
         return modelMapper.map(ticker, TickerResponse.class);
     }
 
@@ -41,15 +45,19 @@ public class TickerService {
 
     @Transactional
     public TickerResponse createTicker(TickerRequest tickerRequest) {
-        Ticker ticker = modelMapper.map(tickerRequest, Ticker.class);
-        ticker = tickerRepository.save(ticker);
-        return modelMapper.map(ticker, TickerResponse.class);
+        try {
+            Ticker ticker = modelMapper.map(tickerRequest, Ticker.class);
+            ticker = tickerRepository.save(ticker);
+            return modelMapper.map(ticker, TickerResponse.class);
+        } catch (Exception ex) {
+            throw new InvalidTickerException("Error creating ticker: " + ex.getMessage());
+        }
     }
 
     @Transactional
     public TickerResponse updateTicker(String symbol, TickerRequest tickerRequest) {
         Ticker ticker = tickerRepository.findById(symbol)
-                .orElseThrow(() -> new RuntimeException("Ticker not found"));
+                .orElseThrow(() -> new TickerNotFoundException(symbol));
 
         ticker.setCategory(tickerRequest.getCategory());
         ticker.setSector(tickerRequest.getSector());
@@ -62,8 +70,7 @@ public class TickerService {
 
     @Transactional
     public void deleteTicker(String symbol) {
-        Ticker ticker = tickerRepository.findById(symbol).orElseThrow(() -> new RuntimeException("Ticker not found"));
-        tickerRepository.delete(ticker);
+        tickerRepository.deleteBySymbol(symbol);
     }
 
     @Transactional(readOnly = true)
@@ -74,7 +81,7 @@ public class TickerService {
                     List<String> subSectors = tickerRepository.findAllSubSectorsBySector(sector);
                     return new SectorResponse(sector, subSectors);
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -90,7 +97,7 @@ public class TickerService {
         return new PageImpl<>(
                 tickersPage.stream()
                         .map(ticker -> modelMapper.map(ticker, TickerResponse.class))
-                        .collect(Collectors.toList()),
+                        .toList(),
                 pageable,
                 tickersPage.getTotalElements()
         );

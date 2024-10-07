@@ -2,6 +2,9 @@ package dev.jaoow.investmentapp.application.service.movement;
 
 import dev.jaoow.investmentapp.application.dto.request.AssetMovementRequest;
 import dev.jaoow.investmentapp.application.dto.response.AssetMovementResponse;
+import dev.jaoow.investmentapp.application.exception.AssetMovementNotFoundException;
+import dev.jaoow.investmentapp.application.exception.PortfolioMismatchException;
+import dev.jaoow.investmentapp.application.exception.PortfolioNotFoundException;
 import dev.jaoow.investmentapp.domain.entity.AssetMovement;
 import dev.jaoow.investmentapp.domain.entity.Portfolio;
 import dev.jaoow.investmentapp.domain.repository.AssetMovementRepository;
@@ -38,10 +41,10 @@ public class AssetMovementService {
     @Transactional(readOnly = true)
     public AssetMovementResponse getAssetMovement(Long portfolioId, Long movementId) {
         AssetMovement assetMovement = assetMovementRepository.findById(movementId)
-                .orElseThrow(() -> new RuntimeException("Asset Movement not found"));
+                .orElseThrow(() -> new AssetMovementNotFoundException(movementId));
 
         if (!assetMovement.getPortfolio().getId().equals(portfolioId)) {
-            throw new RuntimeException("Asset Movement does not belong to the specified portfolio");
+            throw new PortfolioMismatchException(portfolioId, movementId);
         }
 
         return modelMapper.map(assetMovement, AssetMovementResponse.class);
@@ -50,13 +53,10 @@ public class AssetMovementService {
     @Transactional
     public AssetMovementResponse createAssetMovement(Long portfolioId, AssetMovementRequest assetMovementRequest) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
-                .orElseThrow(() -> new RuntimeException("Portfolio not found"));
+                .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
         AssetMovement assetMovement = modelMapper.map(assetMovementRequest, AssetMovement.class);
         assetMovement.setPortfolio(portfolio);
-
-        // Add the movement to the portfolio's list
-        portfolio.getAssetMovements().add(assetMovement);
 
         assetMovement = assetMovementRepository.save(assetMovement);
         return modelMapper.map(assetMovement, AssetMovementResponse.class);
@@ -65,16 +65,15 @@ public class AssetMovementService {
     @Transactional
     public AssetMovementResponse updateAssetMovement(Long portfolioId, Long movementId, AssetMovementRequest assetMovementRequest) {
         portfolioRepository.findById(portfolioId)
-                .orElseThrow(() -> new RuntimeException("Portfolio not found"));
+                .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
         AssetMovement assetMovement = assetMovementRepository.findById(movementId)
-                .orElseThrow(() -> new RuntimeException("Asset Movement not found"));
+                .orElseThrow(() -> new AssetMovementNotFoundException(movementId));
 
         if (!assetMovement.getPortfolio().getId().equals(portfolioId)) {
-            throw new RuntimeException("Asset Movement does not belong to the specified portfolio");
+            throw new PortfolioMismatchException(portfolioId, movementId);
         }
 
-        // Update the asset movement with the new values
         modelMapper.map(assetMovementRequest, assetMovement);
         assetMovement = assetMovementRepository.save(assetMovement);
 
@@ -84,10 +83,10 @@ public class AssetMovementService {
     @Transactional
     public void deleteAssetMovement(Long portfolioId, Long movementId) {
         AssetMovement assetMovement = assetMovementRepository.findById(movementId)
-                .orElseThrow(() -> new RuntimeException("Asset Movement not found"));
+                .orElseThrow(() -> new AssetMovementNotFoundException(movementId));
 
         if (!assetMovement.getPortfolio().getId().equals(portfolioId)) {
-            throw new RuntimeException("Asset Movement does not belong to the specified portfolio");
+            throw new PortfolioMismatchException(portfolioId, movementId);
         }
 
         assetMovementRepository.delete(assetMovement);
