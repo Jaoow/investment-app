@@ -1,5 +1,6 @@
 package dev.jaoow.investmentapp.domain.entity;
 
+import dev.jaoow.investmentapp.domain.entity.user.User;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -17,4 +18,8 @@ public class Portfolio {
 
     @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AssetMovement> assetMovements = new LinkedList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 }
