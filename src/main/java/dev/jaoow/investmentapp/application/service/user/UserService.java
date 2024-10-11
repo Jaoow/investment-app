@@ -60,11 +60,11 @@ public class UserService implements UserDetailsService {
         );
     }
 
-    private User findUserByEmail(String email) {
+    public User findUserByEmail(String email) {
         return userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
     }
 
-    private Role findRole(String roleName) {
+    public Role findRoleByName(String roleName) {
         return roleRepository.findByName(roleName).orElseThrow(() -> new ResourceNotFoundException("Role not found with name" + roleName));
     }
 
@@ -103,7 +103,7 @@ public class UserService implements UserDetailsService {
 
     public boolean assignRoleToUser(String userEmail, String roleName) {
         User user = findUserByEmail(userEmail);
-        Role role = findRole(roleName);
+        Role role = findRoleByName(roleName);
 
         user.getRoles().add(role);
         userRepository.save(user);
