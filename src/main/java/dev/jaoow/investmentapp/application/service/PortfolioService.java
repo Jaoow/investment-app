@@ -10,6 +10,8 @@ import dev.jaoow.investmentapp.domain.repository.PortfolioRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,12 +30,6 @@ public class PortfolioService {
         this.userService = userService;
     }
 
-    @Transactional(readOnly = true)
-    public PortfolioResponse getPortfolioByIdAndUserId(Long portfolioId, Principal principal) {
-        String userEmail = principal.getName();
-        Portfolio portfolio = portfolioRepository.findByIdAndUserEmail(portfolioId, userEmail).orElse(null);
-        return modelMapper.map(portfolio, PortfolioResponse.class);
-    }
 
     @Transactional(readOnly = true)
     public Page<PortfolioResponse> getAllPortfoliosByUser(Pageable pageable, Principal principal) {
@@ -53,6 +49,15 @@ public class PortfolioService {
         return modelMapper.map(portfolio, PortfolioResponse.class);
     }
 
+    @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#portfolioId, authentication)")
+    @Transactional(readOnly = true)
+    public PortfolioResponse getPortfolioByIdAndUserId(Long portfolioId, Principal principal) {
+        String userEmail = principal.getName();
+        Portfolio portfolio = portfolioRepository.findByIdAndUserEmail(portfolioId, userEmail).orElse(null);
+        return modelMapper.map(portfolio, PortfolioResponse.class);
+    }
+
+    @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#id, authentication)")
     @Transactional
     public PortfolioResponse updatePortfolio(Long id, PortfolioRequest portfolioRequest) {
         Portfolio portfolio = portfolioRepository.findById(id)
@@ -64,12 +69,12 @@ public class PortfolioService {
         return modelMapper.map(portfolio, PortfolioResponse.class);
     }
 
+    @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#id, authentication)")
     @Transactional
     public void deletePortfolio(Long id) {
         Portfolio portfolio = portfolioRepository.findById(id)
                 .orElseThrow(() -> new PortfolioNotFoundException(id));
 
-        // Ensure all asset movements are removed when the portfolio is deleted
         portfolio.getAssetMovements().clear();
         portfolioRepository.delete(portfolio);
     }

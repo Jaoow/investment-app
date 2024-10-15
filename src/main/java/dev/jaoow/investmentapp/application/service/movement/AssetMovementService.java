@@ -10,9 +10,13 @@ import dev.jaoow.investmentapp.domain.entity.Portfolio;
 import dev.jaoow.investmentapp.domain.repository.AssetMovementRepository;
 import dev.jaoow.investmentapp.domain.repository.PortfolioRepository;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.Principal;
 import java.util.List;
 
 @Service
@@ -31,13 +35,43 @@ public class AssetMovementService {
     }
 
     @Transactional(readOnly = true)
-    public List<AssetMovementResponse> getAllAssetMovementsByPortfolio(Long portfolioId) {
-        return assetMovementRepository.findAll().stream()
-                .filter(movement -> movement.getPortfolio().getId().equals(portfolioId))
+    public Page<AssetMovementResponse> getAllByPortfolio(Long portfolioId, Principal principal, Pageable pageable) {
+
+        String userEmail = principal.getName();
+        Portfolio portfolio = portfolioRepository.findByIdAndUserEmail(portfolioId, userEmail)
+                .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
+
+        return assetMovementRepository.findAllByPortfolio(portfolio, pageable)
+                .map(movement -> modelMapper.map(movement, AssetMovementResponse.class));
+    }
+
+    @Transactional
+    public List<AssetMovementResponse> createAssetMovementsBulk(Long portfolioId, List<AssetMovementRequest> assetMovementRequests) {
+        Portfolio portfolio = portfolioRepository.findById(portfolioId)
+                .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
+
+        List<AssetMovement> assetMovements = assetMovementRequests.stream()
+                .map(request -> {
+                    AssetMovement assetMovement = modelMapper.map(request, AssetMovement.class);
+                    assetMovement.setPortfolio(portfolio);
+                    return assetMovement;
+                })
+                .toList();
+
+        assetMovements = assetMovementRepository.saveAll(assetMovements);
+
+        return assetMovements.stream()
                 .map(movement -> modelMapper.map(movement, AssetMovementResponse.class))
                 .toList();
     }
 
+    @Transactional
+    public AssetMovementResponse createAssetMovement(Long portfolioId, AssetMovementRequest assetMovementRequest) {
+        List<AssetMovementRequest> requests = List.of(assetMovementRequest);
+        return createAssetMovementsBulk(portfolioId, requests).getFirst();
+    }
+
+    @PreAuthorize("hasRole('USER') and @assetMovementSecurity.isOwner(#movementId, authentication)")
     @Transactional(readOnly = true)
     public AssetMovementResponse getAssetMovement(Long portfolioId, Long movementId) {
         AssetMovement assetMovement = assetMovementRepository.findById(movementId)
@@ -50,18 +84,8 @@ public class AssetMovementService {
         return modelMapper.map(assetMovement, AssetMovementResponse.class);
     }
 
-    @Transactional
-    public AssetMovementResponse createAssetMovement(Long portfolioId, AssetMovementRequest assetMovementRequest) {
-        Portfolio portfolio = portfolioRepository.findById(portfolioId)
-                .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
-        AssetMovement assetMovement = modelMapper.map(assetMovementRequest, AssetMovement.class);
-        assetMovement.setPortfolio(portfolio);
-
-        assetMovement = assetMovementRepository.save(assetMovement);
-        return modelMapper.map(assetMovement, AssetMovementResponse.class);
-    }
-
+    @PreAuthorize("hasRole('USER') and @assetMovementSecurity.isOwner(#movementId, authentication)")
     @Transactional
     public AssetMovementResponse updateAssetMovement(Long portfolioId, Long movementId, AssetMovementRequest assetMovementRequest) {
         portfolioRepository.findById(portfolioId)
@@ -80,6 +104,8 @@ public class AssetMovementService {
         return modelMapper.map(assetMovement, AssetMovementResponse.class);
     }
 
+
+    @PreAuthorize("hasRole('USER') and @assetMovementSecurity.isOwner(#movementId, authentication)")
     @Transactional
     public void deleteAssetMovement(Long portfolioId, Long movementId) {
         AssetMovement assetMovement = assetMovementRepository.findById(movementId)

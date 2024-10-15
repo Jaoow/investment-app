@@ -1,15 +1,13 @@
 package dev.jaoow.investmentapp.application.service.movement;
 
+import dev.jaoow.investmentapp.application.dto.request.AssetMovementRequest;
 import dev.jaoow.investmentapp.application.dto.response.AssetMovementResponse;
 import dev.jaoow.investmentapp.application.exception.AssetMovementImportException;
 import dev.jaoow.investmentapp.application.exception.PortfolioNotFoundException;
 import dev.jaoow.investmentapp.application.util.AssetMovementFileProcessor;
-import dev.jaoow.investmentapp.domain.entity.AssetMovement;
 import dev.jaoow.investmentapp.domain.entity.Portfolio;
-import dev.jaoow.investmentapp.domain.repository.AssetMovementRepository;
 import dev.jaoow.investmentapp.domain.repository.PortfolioRepository;
 import jakarta.transaction.Transactional;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,17 +18,14 @@ public class AssetMovementImportService {
 
     private final AssetMovementFileProcessor assetMovementFileProcessor;
     private final PortfolioRepository portfolioRepository;
-    private final AssetMovementRepository assetMovementRepository;
-    private final ModelMapper modelMapper;
+    private final AssetMovementService assetMovementService;
 
     public AssetMovementImportService(AssetMovementFileProcessor assetMovementFileProcessor,
                                       PortfolioRepository portfolioRepository,
-                                      AssetMovementRepository assetMovementRepository,
-                                      ModelMapper modelMapper) {
+                                      AssetMovementService assetMovementService) {
         this.assetMovementFileProcessor = assetMovementFileProcessor;
         this.portfolioRepository = portfolioRepository;
-        this.assetMovementRepository = assetMovementRepository;
-        this.modelMapper = modelMapper;
+        this.assetMovementService = assetMovementService;
     }
 
     @Transactional
@@ -39,19 +34,8 @@ public class AssetMovementImportService {
                 .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
         try {
-            List<AssetMovement> assetMovements = assetMovementFileProcessor.processExcelFile(file);
-
-            for (AssetMovement assetMovement : assetMovements) {
-                assetMovement.setPortfolio(portfolio);
-                portfolio.getAssetMovements().add(assetMovement);
-            }
-
-            assetMovementRepository.saveAll(assetMovements);
-
-            return assetMovements.stream()
-                    .map(movement -> modelMapper.map(movement, AssetMovementResponse.class))
-                    .toList();
-
+            List<AssetMovementRequest> assetMovements = assetMovementFileProcessor.processExcelFile(file);
+            return assetMovementService.createAssetMovementsBulk(portfolio.getId(), assetMovements);
         } catch (Exception e) {
             throw new AssetMovementImportException();
         }

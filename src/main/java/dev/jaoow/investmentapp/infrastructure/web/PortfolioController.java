@@ -6,9 +6,12 @@ import dev.jaoow.investmentapp.application.dto.response.summary.PortfolioSummary
 import dev.jaoow.investmentapp.application.service.PortfolioService;
 import dev.jaoow.investmentapp.application.service.summary.PortfolioSummaryService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -24,19 +27,19 @@ public class PortfolioController {
     }
 
     @GetMapping
-    public List<PortfolioResponse> getAllPortfolios() {
-        return portfolioService.getAllPortfolios();
+    public Page<PortfolioResponse> getAllPortfolios(Pageable pageable, Principal principal) {
+        return portfolioService.getAllPortfoliosByUser(pageable, principal);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public PortfolioResponse createPortfolio(@Valid @RequestBody PortfolioRequest portfolioRequest) {
-        return portfolioService.createPortfolio(portfolioRequest);
+    public PortfolioResponse createPortfolio(@Valid @RequestBody PortfolioRequest portfolioRequest, Principal principal) {
+        return portfolioService.createPortfolio(portfolioRequest, principal);
     }
 
     @GetMapping("/{portfolioId}")
-    public PortfolioResponse getPortfolio(@PathVariable Long portfolioId) {
-        return portfolioService.getPortfolio(portfolioId);
+    public PortfolioResponse getPortfolio(@PathVariable Long portfolioId, Principal principal) {
+        return portfolioService.getPortfolioByIdAndUserId(portfolioId, principal);
     }
 
     @PutMapping("/{portfolioId}")

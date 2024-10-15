@@ -24,7 +24,7 @@ public class AssetMovementController {
 
     @GetMapping
     public List<AssetMovementResponse> getAllAssetMovements(@PathVariable Long portfolioId) {
-        return assetMovementService.getAllAssetMovementsByPortfolio(portfolioId);
+        return assetMovementService.getAllByPortfolio(portfolioId);
     }
 
     @PostMapping

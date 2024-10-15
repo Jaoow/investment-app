@@ -1,5 +1,6 @@
 package dev.jaoow.investmentapp.application.util;
 
+import dev.jaoow.investmentapp.application.dto.request.AssetMovementRequest;
 import dev.jaoow.investmentapp.domain.entity.AssetMovement;
 import dev.jaoow.investmentapp.domain.model.MovementType;
 import org.apache.poi.ss.usermodel.*;
@@ -29,7 +30,7 @@ public class AssetMovementFileProcessor {
 
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    public List<AssetMovement> processExcelFile(MultipartFile file) throws IOException {
+    public List<AssetMovementRequest> processExcelFile(MultipartFile file) throws IOException {
         List<AssetMovement> assetMovements = new ArrayList<>();
         try (InputStream inputStream = file.getInputStream();
              Workbook workbook = new XSSFWorkbook(inputStream)) {
@@ -42,7 +43,7 @@ public class AssetMovementFileProcessor {
                     continue; // Skip header and empty rows
                 }
                 try {
-                    AssetMovement assetMovement = mapRowToAssetMovement(row, columnIndexes);
+                    AssetMovementRequest assetMovement = mapRowToAssetMovement(row, columnIndexes);
                     assetMovements.add(assetMovement);
                 } catch (Exception e) {
                     logger.error("Error processing row {}: {}", row.getRowNum(), e.getMessage());
@@ -60,8 +61,8 @@ public class AssetMovementFileProcessor {
         return columnIndexes;
     }
 
-    private AssetMovement mapRowToAssetMovement(Row row, Map<String, Integer> columnIndexes) {
-        AssetMovement assetMovement = new AssetMovement();
+    private AssetMovementRequest mapRowToAssetMovement(Row row, Map<String, Integer> columnIndexes) {
+        AssetMovementRequest assetMovement = new AssetMovementRequest();
         assetMovement.setDate(parseDate(row, columnIndexes.get(DATE_COLUMN)));
         assetMovement.setType(mapMovementType(row.getCell(columnIndexes.get(TYPE_COLUMN)).getStringCellValue()));
         assetMovement.setTickerSymbol(removeFractionalIndicator(row.getCell(columnIndexes.get(TICKER_COLUMN)).getStringCellValue()));
