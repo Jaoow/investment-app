@@ -5,10 +5,13 @@ import dev.jaoow.investmentapp.application.dto.response.AssetMovementResponse;
 import dev.jaoow.investmentapp.application.service.movement.AssetMovementImportService;
 import dev.jaoow.investmentapp.application.service.movement.AssetMovementService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -23,8 +26,8 @@ public class AssetMovementController {
     }
 
     @GetMapping
-    public List<AssetMovementResponse> getAllAssetMovements(@PathVariable Long portfolioId) {
-        return assetMovementService.getAllByPortfolio(portfolioId);
+    public Page<AssetMovementResponse> getAllAssetMovements(@PathVariable Long portfolioId, Principal principal, Pageable pageable) {
+        return assetMovementService.getAllByPortfolio(portfolioId, principal, pageable);
     }
 
     @PostMapping
