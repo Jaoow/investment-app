@@ -31,7 +31,7 @@ public class AssetMovementFileProcessor {
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public List<AssetMovementRequest> processExcelFile(MultipartFile file) throws IOException {
-        List<AssetMovement> assetMovements = new ArrayList<>();
+        List<AssetMovementRequest> assetMovements = new ArrayList<>();
         try (InputStream inputStream = file.getInputStream();
              Workbook workbook = new XSSFWorkbook(inputStream)) {
 
