@@ -8,6 +8,7 @@ import dev.jaoow.investmentapp.application.util.AssetMovementFileProcessor;
 import dev.jaoow.investmentapp.domain.entity.Portfolio;
 import dev.jaoow.investmentapp.domain.repository.PortfolioRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,6 +30,7 @@ public class AssetMovementImportService {
     }
 
     @Transactional
+    @PreAuthorize("hasRole('USER') and portfolioSecurity.isOwner(portfolioId, authentication)")
     public List<AssetMovementResponse> importAssetMovements(Long portfolioId, MultipartFile file) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));

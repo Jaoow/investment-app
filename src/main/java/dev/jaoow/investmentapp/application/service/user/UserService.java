@@ -10,6 +10,7 @@ import dev.jaoow.investmentapp.domain.entity.user.User;
 import dev.jaoow.investmentapp.domain.repository.user.RoleRepository;
 import dev.jaoow.investmentapp.domain.repository.user.UserRepository;
 import dev.jaoow.investmentapp.infrastructure.security.JwtService;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,23 +27,20 @@ import org.springframework.stereotype.Service;
 import java.util.HashSet;
 import java.util.Set;
 
+@Slf4j
 @Service
 public class UserService implements UserDetailsService {
 
     private final ModelMapper modelMapper;
-    private final AuthenticationManager authenticationManager;
-    private final JwtService jwtService;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, ModelMapper modelMapper, AuthenticationManager authenticationManager, JwtService jwtService) {
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, ModelMapper modelMapper) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.modelMapper = modelMapper;
-        this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService;
     }
 
     @Override
@@ -69,25 +67,12 @@ public class UserService implements UserDetailsService {
     }
 
 
-    public UserLoginResponse login(UserLoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginRequest.getEmail(), loginRequest.getPassword()
-                )
-        );
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        UserDetails principal = (UserDetails) authentication.getPrincipal();
-        String jwt = jwtService.generateToken(principal);
-
-        return new UserLoginResponse(jwt);
-    }
-
     public UserRegisterResponse register(UserLoginRequest userLoginRequest) {
         if (userRepository.existsByEmail(userLoginRequest.getEmail())) {
             throw new EmailAlreadyInUseException("Email already in use");
         }
+
+        log.info("Registering user: {}", userLoginRequest.getEmail());
 
         User user = new User();
         user.setEmail(userLoginRequest.getEmail());

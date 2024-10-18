@@ -12,6 +12,7 @@ import dev.jaoow.investmentapp.domain.repository.PortfolioRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,6 +67,7 @@ public class AssetMovementService {
     }
 
     @Transactional
+    @PreAuthorize("hasRole('USER') and portfolioSecurity.isOwner(portfolioId, authentication)")
     public AssetMovementResponse createAssetMovement(Long portfolioId, AssetMovementRequest assetMovementRequest) {
         List<AssetMovementRequest> requests = List.of(assetMovementRequest);
         return createAssetMovementsBulk(portfolioId, requests).getFirst();
@@ -103,7 +105,6 @@ public class AssetMovementService {
 
         return modelMapper.map(assetMovement, AssetMovementResponse.class);
     }
-
 
     @PreAuthorize("hasRole('USER') and @assetMovementSecurity.isOwner(#movementId, authentication)")
     @Transactional

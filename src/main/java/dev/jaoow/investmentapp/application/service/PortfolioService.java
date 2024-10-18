@@ -29,7 +29,6 @@ public class PortfolioService {
         this.userService = userService;
     }
 
-
     @Transactional(readOnly = true)
     public Page<PortfolioResponse> getAllPortfoliosByUser(Pageable pageable, Principal principal) {
         String userEmail = principal.getName();

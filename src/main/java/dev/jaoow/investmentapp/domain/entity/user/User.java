@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.Set;
 
 @Entity
+@Table(name = "_user")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
