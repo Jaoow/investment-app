@@ -1,6 +1,7 @@
 package dev.jaoow.investmentapp.infrastructure.web;
 
 import dev.jaoow.investmentapp.application.dto.request.UserLoginRequest;
+import dev.jaoow.investmentapp.application.dto.request.UserRegisterRequest;
 import dev.jaoow.investmentapp.application.dto.response.UserLoginResponse;
 import dev.jaoow.investmentapp.application.dto.response.UserRegisterResponse;
 import dev.jaoow.investmentapp.application.service.user.AuthService;
@@ -25,7 +26,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public UserRegisterResponse register(@RequestBody UserLoginRequest userLoginRequest) {
-        return userService.register(userLoginRequest);
+    public UserRegisterResponse register(@RequestBody UserRegisterRequest userRegisterRequest) {
+        return userService.register(userRegisterRequest);
     }
 }

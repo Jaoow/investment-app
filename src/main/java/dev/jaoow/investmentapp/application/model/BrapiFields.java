@@ -1,12 +1,12 @@
 package dev.jaoow.investmentapp.application.model;
 
-import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
 @Data
-@Builder
+@NoArgsConstructor
 public class BrapiFields {
     private String shortName;
     private String longName;

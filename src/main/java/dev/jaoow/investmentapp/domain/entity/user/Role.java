@@ -3,7 +3,6 @@ package dev.jaoow.investmentapp.domain.entity.user;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
@@ -19,4 +18,12 @@ public class Role {
     @Column(nullable = false, unique = true)
     private String name;
 
+    public Role(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

@@ -1,12 +1,12 @@
 package dev.jaoow.investmentapp.application.model;
 
-import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
 @Data
-@Builder
+@NoArgsConstructor
 public class TickerFields {
     private String category;
     private String sector;

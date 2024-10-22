@@ -1,6 +1,7 @@
 package dev.jaoow.investmentapp.application.service.user;
 
 import dev.jaoow.investmentapp.application.dto.request.UserLoginRequest;
+import dev.jaoow.investmentapp.application.dto.request.UserRegisterRequest;
 import dev.jaoow.investmentapp.application.dto.response.UserLoginResponse;
 import dev.jaoow.investmentapp.application.dto.response.UserRegisterResponse;
 import dev.jaoow.investmentapp.application.exception.EmailAlreadyInUseException;
@@ -67,16 +68,17 @@ public class UserService implements UserDetailsService {
     }
 
 
-    public UserRegisterResponse register(UserLoginRequest userLoginRequest) {
-        if (userRepository.existsByEmail(userLoginRequest.getEmail())) {
+    public UserRegisterResponse register(UserRegisterRequest userRegisterRequest) {
+        if (userRepository.existsByEmail(userRegisterRequest.getEmail())) {
             throw new EmailAlreadyInUseException("Email already in use");
         }
 
-        log.info("Registering user: {}", userLoginRequest.getEmail());
+        log.info("Registering user: {}", userRegisterRequest.getEmail());
 
         User user = new User();
-        user.setEmail(userLoginRequest.getEmail());
-        user.setPassword(passwordEncoder.encode(userLoginRequest.getPassword()));
+        user.setName(userRegisterRequest.getName());
+        user.setEmail(userRegisterRequest.getEmail());
+        user.setPassword(passwordEncoder.encode(userRegisterRequest.getPassword()));
 
         Role role = roleRepository.findByName("ROLE_USER")
                 .orElseThrow(() -> new ResourceNotFoundException("Role not found"));

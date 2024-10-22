@@ -1,5 +1,6 @@
 package dev.jaoow.investmentapp.application.security;
 
+import dev.jaoow.investmentapp.application.exception.PortfolioNotFoundException;
 import dev.jaoow.investmentapp.domain.entity.Portfolio;
 import dev.jaoow.investmentapp.domain.repository.PortfolioRepository;
 import org.springframework.security.core.Authentication;
@@ -16,7 +17,7 @@ public class PortfolioSecurity {
 
     public boolean isOwner(Long portfolioId, Authentication authentication) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
-                .orElseThrow(() -> new RuntimeException("Portfolio not found"));
+                .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
         return portfolio.getUser().getEmail().equals(authentication.getName());
     }

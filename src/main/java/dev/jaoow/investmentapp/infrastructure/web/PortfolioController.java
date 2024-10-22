@@ -8,6 +8,7 @@ import dev.jaoow.investmentapp.application.service.summary.PortfolioSummaryServi
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,7 +27,7 @@ public class PortfolioController {
     }
 
     @GetMapping
-    public Page<PortfolioResponse> getAllPortfolios(Pageable pageable, Principal principal) {
+    public PagedModel<PortfolioResponse> getAllPortfolios(Pageable pageable, Principal principal) {
         return portfolioService.getAllPortfoliosByUser(pageable, principal);
     }
 

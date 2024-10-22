@@ -8,8 +8,8 @@ import dev.jaoow.investmentapp.domain.entity.Portfolio;
 import dev.jaoow.investmentapp.domain.entity.user.User;
 import dev.jaoow.investmentapp.domain.repository.PortfolioRepository;
 import org.modelmapper.ModelMapper;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedModel;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,10 +30,11 @@ public class PortfolioService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PortfolioResponse> getAllPortfoliosByUser(Pageable pageable, Principal principal) {
+    public PagedModel<PortfolioResponse> getAllPortfoliosByUser(Pageable pageable, Principal principal) {
         String userEmail = principal.getName();
-        return portfolioRepository.findAllByUserEmail(pageable, userEmail)
-                .map(portfolio -> modelMapper.map(portfolio, PortfolioResponse.class));
+        return new PagedModel<>(portfolioRepository.findAllByUserEmail(pageable, userEmail)
+                .map(portfolio -> modelMapper.map(portfolio, PortfolioResponse.class)));
+
     }
 
     @Transactional
