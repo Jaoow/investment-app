@@ -2,10 +2,9 @@ package dev.jaoow.investmentapp.application.util;
 
 import dev.jaoow.investmentapp.application.dto.request.AssetMovementRequest;
 import dev.jaoow.investmentapp.domain.model.MovementType;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,10 +18,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class AssetMovementFileProcessor {
-
-    private static final Logger logger = LoggerFactory.getLogger(AssetMovementFileProcessor.class);
 
     private static final String DATE_COLUMN = "Data do Negócio";
     private static final String TYPE_COLUMN = "Tipo de Movimentação";
@@ -48,7 +46,7 @@ public class AssetMovementFileProcessor {
                     AssetMovementRequest assetMovement = mapRowToAssetMovement(row, columnIndexes);
                     assetMovements.add(assetMovement);
                 } catch (Exception e) {
-                    logger.error("Error processing row {}: {}", row.getRowNum(), e.getMessage());
+                    log.error("Error processing row {}: {}", row.getRowNum(), e.getMessage());
                 }
             }
         }
