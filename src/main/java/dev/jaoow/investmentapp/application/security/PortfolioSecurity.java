@@ -7,6 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 @Component
+@SuppressWarnings("unused")
 public class PortfolioSecurity {
 
     private final PortfolioRepository portfolioRepository;

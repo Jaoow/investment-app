@@ -1,30 +1,25 @@
 package dev.jaoow.investmentapp.application.service.user;
 
-import dev.jaoow.investmentapp.application.dto.request.UserLoginRequest;
 import dev.jaoow.investmentapp.application.dto.request.UserRegisterRequest;
-import dev.jaoow.investmentapp.application.dto.response.UserLoginResponse;
-import dev.jaoow.investmentapp.application.dto.response.UserRegisterResponse;
+import dev.jaoow.investmentapp.application.dto.response.UserResponse;
 import dev.jaoow.investmentapp.application.exception.EmailAlreadyInUseException;
 import dev.jaoow.investmentapp.application.exception.ResourceNotFoundException;
 import dev.jaoow.investmentapp.domain.entity.user.Role;
 import dev.jaoow.investmentapp.domain.entity.user.User;
 import dev.jaoow.investmentapp.domain.repository.user.RoleRepository;
 import dev.jaoow.investmentapp.domain.repository.user.UserRepository;
-import dev.jaoow.investmentapp.infrastructure.security.JwtService;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.Principal;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -67,13 +62,15 @@ public class UserService implements UserDetailsService {
         return roleRepository.findByName(roleName).orElseThrow(() -> new ResourceNotFoundException("Role not found with name" + roleName));
     }
 
+    public UserResponse self(Principal principal) {
+        User user = findUserByEmail(principal.getName());
+        return modelMapper.map(user, UserResponse.class);
+    }
 
-    public UserRegisterResponse register(UserRegisterRequest userRegisterRequest) {
+    public UserResponse register(UserRegisterRequest userRegisterRequest) {
         if (userRepository.existsByEmail(userRegisterRequest.getEmail())) {
             throw new EmailAlreadyInUseException("Email already in use");
         }
-
-        log.info("Registering user: {}", userRegisterRequest.getEmail());
 
         User user = new User();
         user.setName(userRegisterRequest.getName());
@@ -85,16 +82,15 @@ public class UserService implements UserDetailsService {
         user.setRoles(new HashSet<>(Set.of(role)));
 
         user = userRepository.save(user);
-        return modelMapper.map(user, UserRegisterResponse.class);
+        return modelMapper.map(user, UserResponse.class);
     }
 
-    public boolean assignRoleToUser(String userEmail, String roleName) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public void assignRoleToUser(String userEmail, String roleName) {
         User user = findUserByEmail(userEmail);
         Role role = findRoleByName(roleName);
 
         user.getRoles().add(role);
         userRepository.save(user);
-        return true;
     }
-
 }

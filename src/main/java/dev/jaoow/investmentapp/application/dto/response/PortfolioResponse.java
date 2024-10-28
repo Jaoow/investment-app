@@ -7,5 +7,5 @@ import java.util.List;
 public class PortfolioResponse {
     private Long id;
     private String name;
-    private List<AssetMovementResponse> assetMovements;
+    private Integer totalAssets;
 }

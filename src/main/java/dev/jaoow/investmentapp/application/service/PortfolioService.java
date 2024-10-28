@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.Principal;
+import java.util.List;
 
 @Service
 public class PortfolioService {
@@ -30,10 +31,10 @@ public class PortfolioService {
     }
 
     @Transactional(readOnly = true)
-    public PagedModel<PortfolioResponse> getAllPortfoliosByUser(Pageable pageable, Principal principal) {
+    public List<PortfolioResponse> getAllPortfoliosByUser(Pageable pageable, Principal principal) {
         String userEmail = principal.getName();
-        return new PagedModel<>(portfolioRepository.findAllByUserEmail(pageable, userEmail)
-                .map(portfolio -> modelMapper.map(portfolio, PortfolioResponse.class)));
+        return portfolioRepository.findAllByUserEmail(pageable, userEmail)
+                .map(portfolio -> modelMapper.map(portfolio, PortfolioResponse.class)).toList();
 
     }
 

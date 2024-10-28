@@ -13,6 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/portfolio/{portfolioId}/allocations")
 public class AllocationController {
+
     private final AllocationService allocationService;
 
     public AllocationController(RebalanceService rebalanceService, AllocationService allocationService) {

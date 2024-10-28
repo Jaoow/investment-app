@@ -37,8 +37,6 @@ public class AuthService {
 
         try {
             jwt = jwtService.generateToken(principal);
-            log.info("User {} logged in", principal.getUsername());
-            log.info("Token: {}", jwt);
         } catch (Exception e) {
             log.error("Error while generating token", e);
             return null;

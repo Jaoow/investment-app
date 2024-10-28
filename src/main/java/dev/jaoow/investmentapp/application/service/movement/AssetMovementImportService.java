@@ -30,7 +30,7 @@ public class AssetMovementImportService {
     }
 
     @Transactional
-    @PreAuthorize("hasRole('USER') and portfolioSecurity.isOwner(portfolioId, authentication)")
+    @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#portfolioId, authentication)")
     public List<AssetMovementResponse> importAssetMovements(Long portfolioId, MultipartFile file) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));

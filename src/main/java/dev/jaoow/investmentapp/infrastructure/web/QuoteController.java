@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/v1/quotes")
 public class QuoteController {
+
     private final QuoteService quoteService;
 
     public QuoteController(QuoteService quoteService) {

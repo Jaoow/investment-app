@@ -7,7 +7,9 @@ import dev.jaoow.investmentapp.application.service.movement.AssetMovementService
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,6 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/portfolio/{portfolioId}/movement")
 public class AssetMovementController {
+
     private final AssetMovementService assetMovementService;
     private final AssetMovementImportService assetMovementImportService;
 
@@ -26,7 +29,7 @@ public class AssetMovementController {
     }
 
     @GetMapping
-    public Page<AssetMovementResponse> getAllAssetMovements(@PathVariable Long portfolioId, Principal principal, Pageable pageable) {
+    public PagedModel<AssetMovementResponse> getAllAssetMovements(@PathVariable Long portfolioId, Principal principal, Pageable pageable) {
         return assetMovementService.getAllByPortfolio(portfolioId, principal, pageable);
     }
 
@@ -36,12 +39,11 @@ public class AssetMovementController {
         return assetMovementService.createAssetMovement(portfolioId, assetMovementRequest);
     }
 
-    @PostMapping("/import")
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public List<AssetMovementResponse> importAssetMovements(@PathVariable Long portfolioId, @RequestParam("file") MultipartFile file) {
         return assetMovementImportService.importAssetMovements(portfolioId, file);
     }
-
 
     @GetMapping("/{movementId}")
     public AssetMovementResponse getAssetMovement(@PathVariable Long portfolioId, @PathVariable Long movementId) {

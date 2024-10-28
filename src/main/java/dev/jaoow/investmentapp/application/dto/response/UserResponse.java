@@ -6,7 +6,7 @@ import java.util.Date;
 import java.util.Set;
 
 @Data
-public class UserRegisterResponse {
+public class UserResponse {
 
     private Long id;
     private String email;

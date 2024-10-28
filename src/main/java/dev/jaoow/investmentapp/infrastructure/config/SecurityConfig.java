@@ -6,10 +6,9 @@ import dev.jaoow.investmentapp.infrastructure.security.JwtRequestFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -27,15 +26,19 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 )
 public class SecurityConfig {
 
+    private static final String[] PUBLIC_ENDPOINTS = {"/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-ui/**", "/webjars/**"};
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtRequestFilter jwtRequestFilter, JwtAuthEntryPoint jwtAuthEntryPoint) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth ->
                         auth.requestMatchers("auth/login", "auth/register").permitAll()
-                                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-ui/**", "/webjars/**").permitAll()
+                                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                                 .anyRequest().authenticated())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .logout(logout -> logout.logoutUrl("/auth/logout"))
+        ;
 
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -43,16 +46,14 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-        return configuration.getAuthenticationManager();
-    }
-
-    @Bean
-    public AuthenticationProvider authenticationProvider(UserService userService) {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration, UserService userService) throws Exception {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userService);
         authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
+
+        ProviderManager manager = (ProviderManager) configuration.getAuthenticationManager();
+        manager.getProviders().add(authProvider);
+        return manager;
     }
 
     @Bean

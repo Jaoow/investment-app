@@ -12,6 +12,7 @@ import dev.jaoow.investmentapp.domain.repository.PortfolioRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedModel;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,14 +36,14 @@ public class AssetMovementService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AssetMovementResponse> getAllByPortfolio(Long portfolioId, Principal principal, Pageable pageable) {
+    public PagedModel<AssetMovementResponse> getAllByPortfolio(Long portfolioId, Principal principal, Pageable pageable) {
 
         String userEmail = principal.getName();
         Portfolio portfolio = portfolioRepository.findByIdAndUserEmail(portfolioId, userEmail)
                 .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
-        return assetMovementRepository.findAllByPortfolio(portfolio, pageable)
-                .map(movement -> modelMapper.map(movement, AssetMovementResponse.class));
+        return new PagedModel<>(assetMovementRepository.findAllByPortfolio(portfolio, pageable)
+                .map(movement -> modelMapper.map(movement, AssetMovementResponse.class)));
     }
 
     @Transactional

@@ -9,6 +9,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/v1/portfolio/{portfolioId}/rebalance")
 public class RebalanceController {
+
     private final RebalanceService rebalanceService;
 
     public RebalanceController(RebalanceService rebalanceService) {
