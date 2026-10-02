@@ -12,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -38,8 +39,8 @@ public class AssetMovementImportService {
         try {
             List<AssetMovementRequest> assetMovements = assetMovementFileProcessor.processExcelFile(file);
             return assetMovementService.createAssetMovementsBulk(portfolio.getId(), assetMovements);
-        } catch (Exception e) {
-            throw new AssetMovementImportException();
+        } catch (IOException | IllegalArgumentException e) {
+            throw new AssetMovementImportException("Could not read the movement spreadsheet.", e);
         }
     }
 }

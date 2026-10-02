@@ -1,6 +1,7 @@
 package dev.jaoow.investmentapp.application.service.consolidation;
 
 import dev.jaoow.investmentapp.application.model.AssetConsolidation;
+import dev.jaoow.investmentapp.application.exception.InvalidPortfolioPositionException;
 import dev.jaoow.investmentapp.domain.entity.AssetMovement;
 import dev.jaoow.investmentapp.domain.entity.Portfolio;
 import dev.jaoow.investmentapp.domain.model.MovementType;
@@ -31,6 +32,13 @@ public class AssetConsolidationService {
             } else if (movement.getType() == MovementType.SELL) {
                 consolidation.subtractInvestment(movementTotal);
                 consolidation.subtractQuantity(movement.getQuantity());
+            }
+        }
+
+        for (AssetConsolidation consolidation : assetConsolidationMap.values()) {
+            if (consolidation.getTotalQuantity().compareTo(BigDecimal.ZERO) < 0) {
+                throw new InvalidPortfolioPositionException(
+                        "Movements result in a negative position for " + consolidation.getTickerSymbol() + ".");
             }
         }
 

@@ -1,8 +1,8 @@
 package dev.jaoow.investmentapp.application.util;
 
 import dev.jaoow.investmentapp.application.dto.request.AssetMovementRequest;
+import dev.jaoow.investmentapp.application.exception.AssetMovementImportException;
 import dev.jaoow.investmentapp.domain.model.MovementType;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Slf4j
 @Service
 public class AssetMovementFileProcessor {
 
@@ -35,8 +34,12 @@ public class AssetMovementFileProcessor {
         try (InputStream inputStream = file.getInputStream();
              Workbook workbook = new XSSFWorkbook(inputStream)) {
 
+            if (workbook.getNumberOfSheets() == 0 || workbook.getSheetAt(0).getRow(0) == null) {
+                throw new AssetMovementImportException("The spreadsheet is empty or missing its header row.", null);
+            }
             Sheet sheet = workbook.getSheetAt(0);
             Map<String, Integer> columnIndexes = getColumnIndexes(sheet.getRow(0));
+            validateRequiredColumns(columnIndexes);
 
             for (Row row : sheet) {
                 if (row.getRowNum() == 0 || isRowEmpty(row)) {
@@ -45,12 +48,27 @@ public class AssetMovementFileProcessor {
                 try {
                     AssetMovementRequest assetMovement = mapRowToAssetMovement(row, columnIndexes);
                     assetMovements.add(assetMovement);
-                } catch (Exception e) {
-                    log.error("Error processing row {}: {}", row.getRowNum(), e.getMessage());
+                } catch (RuntimeException e) {
+                    throw new AssetMovementImportException(
+                            "Invalid movement data in spreadsheet row " + (row.getRowNum() + 1) + ".", e);
                 }
             }
         }
+        if (assetMovements.isEmpty()) {
+            throw new AssetMovementImportException("The spreadsheet contains no movement rows.", null);
+        }
         return assetMovements;
+    }
+
+    private void validateRequiredColumns(Map<String, Integer> columnIndexes) {
+        List<String> requiredColumns = List.of(DATE_COLUMN, TYPE_COLUMN, TICKER_COLUMN, QUANTITY_COLUMN, PRICE_COLUMN);
+        List<String> missingColumns = requiredColumns.stream()
+                .filter(column -> !columnIndexes.containsKey(column))
+                .toList();
+        if (!missingColumns.isEmpty()) {
+            throw new AssetMovementImportException("Missing required spreadsheet columns: "
+                    + String.join(", ", missingColumns) + ".", null);
+        }
     }
 
     private Map<String, Integer> getColumnIndexes(Row headerRow) {
@@ -68,6 +86,13 @@ public class AssetMovementFileProcessor {
         assetMovement.setTickerSymbol(removeFractionalIndicator(row.getCell(columnIndexes.get(TICKER_COLUMN)).getStringCellValue()));
         assetMovement.setQuantity(parseBigDecimal(row, columnIndexes.get(QUANTITY_COLUMN)));
         assetMovement.setPrice(parseBigDecimal(row, columnIndexes.get(PRICE_COLUMN)));
+        if (assetMovement.getTickerSymbol() == null || assetMovement.getTickerSymbol().isBlank()) {
+            throw new IllegalArgumentException("Ticker is required.");
+        }
+        if (assetMovement.getQuantity().compareTo(BigDecimal.ZERO) <= 0
+                || assetMovement.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Quantity and price must be positive.");
+        }
         return assetMovement;
     }
 
