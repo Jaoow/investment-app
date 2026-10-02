@@ -1,14 +1,13 @@
 package dev.jaoow.investmentapp.infrastructure.config;
 
-import dev.jaoow.investmentapp.application.dto.response.PortfolioResponse;
-import dev.jaoow.investmentapp.domain.entity.AssetMovement;
-import dev.jaoow.investmentapp.domain.entity.Portfolio;
 import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
-import org.modelmapper.ModelMapper;
-import org.modelmapper.PropertyMap;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+
+import java.time.Clock;
+import java.time.Duration;
 
 @Configuration
 public class AppConfig {
@@ -19,7 +18,15 @@ public class AppConfig {
     }
 
     @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        return builder
+                .setConnectTimeout(Duration.ofSeconds(3))
+                .setReadTimeout(Duration.ofSeconds(5))
+                .build();
+    }
+
+    @Bean
+    public Clock clock() {
+        return Clock.systemUTC();
     }
 }

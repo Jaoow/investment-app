@@ -5,12 +5,16 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.Instant;
 
 @Component
 public class BrapiClient {
@@ -25,14 +29,14 @@ public class BrapiClient {
 
     @Cacheable(
             value = "quotes",
-            key = "#ticker",
+            key = "#ticker + ':' + #range + ':' + #interval + ':' + #fundamental + ':' + #dividends",
             cacheManager = "cacheManagerWithRefresh",
             unless="#result == null"
     )
     public Optional<BrapiQuoteDto> getQuote(String ticker, String range, String interval, Boolean fundamental, Boolean dividends) {
-        String baseUrl = "https://brapi.dev/api/quote/{ticker}";
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl(baseUrl)
-                .queryParam("token", apiToken);
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder
+                .fromHttpUrl("https://brapi.dev/api/v2/stocks/quote")
+                .queryParam("symbols", ticker);
 
         if (range != null && !range.isEmpty()) {
             uriBuilder.queryParam("range", range);
@@ -50,11 +54,25 @@ public class BrapiClient {
             uriBuilder.queryParam("dividends", dividends);
         }
 
-        String url = uriBuilder.buildAndExpand(ticker).toUriString();
+        HttpHeaders headers = new HttpHeaders();
+        if (apiToken != null && !apiToken.isBlank()) {
+            headers.setBearerAuth(apiToken);
+        }
 
-        BrapiResponse response = restTemplate.getForObject(url, BrapiResponse.class);
+        BrapiResponse response = restTemplate.exchange(
+                uriBuilder.build().encode().toUri(),
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                BrapiResponse.class
+        ).getBody();
         if (response != null && response.getResults() != null && !response.getResults().isEmpty()) {
-            return Optional.of(response.getResults().getFirst());
+            BrapiQuoteDto quote = response.getResults().getFirst().getData();
+            if (quote == null) {
+                return Optional.empty();
+            }
+            quote.setSymbol(response.getResults().getFirst().getSymbol());
+            quote.setFetchedAt(Instant.now());
+            return Optional.of(quote);
         }
 
         return Optional.empty();
@@ -63,6 +81,13 @@ public class BrapiClient {
     @Setter
     @Getter
     private static class BrapiResponse {
-        private List<BrapiQuoteDto> results;
+        private List<BrapiResult> results;
+    }
+
+    @Setter
+    @Getter
+    private static class BrapiResult {
+        private String symbol;
+        private BrapiQuoteDto data;
     }
 }

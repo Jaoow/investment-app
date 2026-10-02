@@ -1,6 +1,8 @@
 package dev.jaoow.investmentapp.application.dto.response;
 
 import lombok.Data;
+
+import java.time.Instant;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -8,6 +10,8 @@ import java.util.List;
 public class BrapiQuoteDto {
     private String symbol;
     private String currency;
+    private String regularMarketTime;
+    private Instant fetchedAt;
     private String shortName;
     private String longName;
     private BigDecimal regularMarketPrice;
