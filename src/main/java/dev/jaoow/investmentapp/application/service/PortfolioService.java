@@ -54,6 +54,9 @@ public class PortfolioService {
     public PortfolioResponse getPortfolioByIdAndUserId(Long portfolioId, Principal principal) {
         String userEmail = principal.getName();
         Portfolio portfolio = portfolioRepository.findByIdAndUserEmail(portfolioId, userEmail).orElse(null);
+        if (portfolio == null) {
+            throw new PortfolioNotFoundException(portfolioId);
+        }
         return modelMapper.map(portfolio, PortfolioResponse.class);
     }
 

@@ -47,7 +47,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AssetMovementImportException.class)
     public ResponseEntity<ErrorResponse> handleAssetMovementImportException(AssetMovementImportException ex) {
         ErrorResponse errorResponse = new ErrorResponse("Import Error", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(TickerNotFoundException.class)
@@ -60,6 +60,30 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidTickerException(InvalidTickerException ex) {
         ErrorResponse errorResponse = new ErrorResponse("Invalid Ticker", ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidAllocationException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidAllocationException(InvalidAllocationException ex) {
+        ErrorResponse errorResponse = new ErrorResponse("Invalid Allocation", ex.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidPortfolioPositionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidPortfolioPositionException(InvalidPortfolioPositionException ex) {
+        ErrorResponse errorResponse = new ErrorResponse("Invalid Portfolio Position", ex.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @ExceptionHandler(InvalidPortfolioShareException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidPortfolioShareException(InvalidPortfolioShareException ex) {
+        ErrorResponse errorResponse = new ErrorResponse("Invalid Portfolio Share", ex.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MarketDataUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleMarketDataUnavailableException(MarketDataUnavailableException ex) {
+        ErrorResponse errorResponse = new ErrorResponse("Market Data Unavailable", ex.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -80,7 +104,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthorizationDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAuthorizationDeniedException(AuthorizationDeniedException ex) {
         ErrorResponse errorResponse = new ErrorResponse("Unauthorized", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

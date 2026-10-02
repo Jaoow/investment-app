@@ -3,7 +3,6 @@ package dev.jaoow.investmentapp.application.service.user;
 import dev.jaoow.investmentapp.application.dto.request.UserLoginRequest;
 import dev.jaoow.investmentapp.application.dto.response.UserLoginResponse;
 import dev.jaoow.investmentapp.infrastructure.security.JwtService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -11,7 +10,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-@Slf4j
 @Service
 public class AuthService {
 
@@ -33,15 +31,7 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         UserDetails principal = (UserDetails) authentication.getPrincipal();
-        String jwt;
-
-        try {
-            jwt = jwtService.generateToken(principal);
-        } catch (Exception e) {
-            log.error("Error while generating token", e);
-            return null;
-        }
-
+        String jwt = jwtService.generateToken(principal);
         return new UserLoginResponse(jwt);
     }
 }

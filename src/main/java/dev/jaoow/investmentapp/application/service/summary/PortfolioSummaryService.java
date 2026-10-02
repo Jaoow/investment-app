@@ -9,16 +9,15 @@ import dev.jaoow.investmentapp.domain.entity.Portfolio;
 import dev.jaoow.investmentapp.domain.entity.Ticker;
 import dev.jaoow.investmentapp.domain.repository.PortfolioRepository;
 import dev.jaoow.investmentapp.domain.repository.TickerRepository;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 public class PortfolioSummaryService {
 
@@ -35,6 +34,8 @@ public class PortfolioSummaryService {
         this.assetConsolidationService = assetConsolidationService;
     }
 
+    @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#portfolioId, authentication)")
+    @Transactional(readOnly = true)
     public PortfolioSummaryResponse getPortfolioSummary(Long portfolioId, String category) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
