@@ -2,6 +2,7 @@ package dev.jaoow.investmentapp.infrastructure.web;
 
 import dev.jaoow.investmentapp.application.dto.request.TickerFilterRequest;
 import dev.jaoow.investmentapp.application.dto.request.TickerRequest;
+import dev.jaoow.investmentapp.application.dto.request.RegisterTickerRequest;
 import dev.jaoow.investmentapp.application.dto.response.SectorResponse;
 import dev.jaoow.investmentapp.application.dto.response.TickerResponse;
 import dev.jaoow.investmentapp.application.service.TickerService;
@@ -37,6 +38,11 @@ public class TickerController {
     @ResponseStatus(HttpStatus.CREATED)
     public TickerResponse createTicker(@Valid @RequestBody TickerRequest tickerRequest) {
         return tickerService.createTicker(tickerRequest);
+    }
+
+    @PostMapping("/register")
+    public TickerResponse registerTicker(@Valid @RequestBody RegisterTickerRequest request) {
+        return tickerService.registerTicker(request);
     }
 
     @PutMapping("/{symbol}")

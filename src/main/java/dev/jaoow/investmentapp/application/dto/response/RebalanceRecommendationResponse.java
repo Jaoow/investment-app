@@ -9,6 +9,6 @@ public class RebalanceRecommendationResponse {
     private String tickerSymbol;
     private String action; // "BUY" or "SELL"
     private BigDecimal quantity;
-    private double currentPercentage;
-    private double targetPercentage;
+    private BigDecimal currentPercentage;
+    private BigDecimal targetPercentage;
 }

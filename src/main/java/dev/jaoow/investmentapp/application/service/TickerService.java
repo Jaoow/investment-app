@@ -2,9 +2,12 @@ package dev.jaoow.investmentapp.application.service;
 
 import dev.jaoow.investmentapp.application.dto.request.TickerFilterRequest;
 import dev.jaoow.investmentapp.application.dto.request.TickerRequest;
+import dev.jaoow.investmentapp.application.dto.request.RegisterTickerRequest;
 import dev.jaoow.investmentapp.application.dto.response.SectorResponse;
 import dev.jaoow.investmentapp.application.dto.response.TickerResponse;
 import dev.jaoow.investmentapp.application.exception.TickerNotFoundException;
+import dev.jaoow.investmentapp.application.exception.InvalidTickerException;
+import dev.jaoow.investmentapp.application.util.TickerSymbol;
 import dev.jaoow.investmentapp.domain.entity.Ticker;
 import dev.jaoow.investmentapp.domain.repository.TickerRepository;
 import org.modelmapper.ModelMapper;
@@ -47,6 +50,24 @@ public class TickerService {
         Ticker ticker = modelMapper.map(tickerRequest, Ticker.class);
         ticker = tickerRepository.save(ticker);
         return modelMapper.map(ticker, TickerResponse.class);
+    }
+
+    @Transactional
+    @PreAuthorize("hasRole('USER')")
+    public TickerResponse registerTicker(RegisterTickerRequest request) {
+        String symbol = TickerSymbol.normalize(request.getSymbol());
+        Ticker existing = tickerRepository.findById(symbol).orElse(null);
+        if (existing != null) {
+            if (existing.getCategory() != request.getCategory()) {
+                throw new InvalidTickerException(
+                        symbol + " já está cadastrado na categoria " + existing.getCategory() + ".");
+            }
+            return modelMapper.map(existing, TickerResponse.class);
+        }
+        Ticker ticker = new Ticker();
+        ticker.setSymbol(symbol);
+        ticker.setCategory(request.getCategory());
+        return modelMapper.map(tickerRepository.save(ticker), TickerResponse.class);
     }
 
     @Transactional

@@ -2,9 +2,10 @@ package dev.jaoow.investmentapp.infrastructure.web;
 
 import dev.jaoow.investmentapp.application.dto.request.CategoryAllocationRequest;
 import dev.jaoow.investmentapp.application.dto.response.CategoryAllocationResponse;
-import dev.jaoow.investmentapp.application.dto.response.RebalanceRecommendationResponse;
 import dev.jaoow.investmentapp.application.service.AllocationService;
-import dev.jaoow.investmentapp.application.service.RebalanceService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,14 +17,14 @@ public class AllocationController {
 
     private final AllocationService allocationService;
 
-    public AllocationController(RebalanceService rebalanceService, AllocationService allocationService) {
+    public AllocationController(AllocationService allocationService) {
         this.allocationService = allocationService;
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public void setTargetAllocations(@PathVariable Long portfolioId,
-                                     @RequestBody List<CategoryAllocationRequest> categoryAllocations) {
+                                     @RequestBody @Valid @NotEmpty List<@NotNull @Valid CategoryAllocationRequest> categoryAllocations) {
         allocationService.setCategoryAllocations(portfolioId, categoryAllocations);
     }
 
