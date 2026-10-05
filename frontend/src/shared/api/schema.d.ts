@@ -173,6 +173,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/portfolio/{portfolioId}/contribution-eligibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: components["parameters"]["PortfolioId"];
+            };
+            cookie?: never;
+        };
+        get: operations["getContributionEligibility"];
+        put: operations["saveContributionEligibility"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ticker/register": {
         parameters: {
             query?: never;
@@ -469,6 +487,11 @@ export interface components {
         Ceiling: {
             tickerSymbol?: string;
             priceCeiling?: components["schemas"]["Decimal"];
+        };
+        ContributionEligibility: {
+            assets: {
+                [key: string]: boolean;
+            };
         };
         CeilingHistory: {
             /** Format: int64 */
@@ -995,6 +1018,55 @@ export interface operations {
                     "application/json": components["schemas"]["AssetSetting"][];
                 };
             };
+        };
+    };
+    getContributionEligibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: components["parameters"]["PortfolioId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Per-portfolio asset participation in contribution suggestions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContributionEligibility"];
+                };
+            };
+        };
+    };
+    saveContributionEligibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: components["parameters"]["PortfolioId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContributionEligibility"];
+            };
+        };
+        responses: {
+            /** @description Saved participation settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContributionEligibility"];
+                };
+            };
+            403: components["responses"]["Error"];
         };
     };
     registerTicker: {

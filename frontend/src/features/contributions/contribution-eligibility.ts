@@ -12,7 +12,7 @@ export function contributionEligibility(
 ): ContributionEligibility {
   if (ceiling === null) return { label: 'Sem preço teto', tone: 'warning' }
   if (currentPrice === undefined) {
-    return { label: 'Cotação indisponível', tone: 'neutral' }
+    return { label: 'Sem cotação atual', tone: 'neutral' }
   }
   if (new Big(String(currentPrice)).gt(String(ceiling))) {
     return { label: 'Acima do teto', tone: 'warning' }

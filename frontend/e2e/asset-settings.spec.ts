@@ -184,7 +184,7 @@ test('salva metas fracionárias repetidamente e não perde rascunho ao atualizar
     route.fulfill({ json: [] }),
   )
   await login(page)
-  await page.getByRole('link', { name: 'Balanceamento', exact: true }).click()
+  await page.getByRole('link', { name: 'Metas', exact: true }).click()
   const equities = page.getByLabel('Meta de Ações (%)', { exact: true })
   await equities.fill('62,50')
   await page
@@ -217,7 +217,7 @@ test('salva metas fracionárias repetidamente e não perde rascunho ao atualizar
   expect(saves).toBe(2)
   await page.reload()
   await login(page)
-  await page.getByRole('link', { name: 'Balanceamento', exact: true }).click()
+  await page.getByRole('link', { name: 'Metas', exact: true }).click()
   await expect(
     page.getByLabel('Meta de Ações (%)', { exact: true }),
   ).toHaveValue('60.00')

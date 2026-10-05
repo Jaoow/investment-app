@@ -29,6 +29,9 @@ async function mockAuthenticatedApi(
   await page.route('**/api/v1/portfolio/1/summary', async (route) => {
     await route.fulfill({ json: summary })
   })
+  await page.route('**/api/v1/portfolio/1/asset-settings', async (route) => {
+    await route.fulfill({ json: [] })
+  })
   await page.route('**/api/v1/portfolio/1/suggestions', suggestionHandler)
 }
 
@@ -85,15 +88,17 @@ test('simula o aporte e confirma a revisão sem registrar movimentação', async
   })
 
   await signIn(page)
-  await page.getByRole('link', { name: 'Planejar aporte', exact: true }).click()
-  await page.getByLabel('Valor disponível').fill('1.234,56')
-  await page.getByRole('button', { name: 'Ver sugestão de aporte' }).click()
+  await page.getByRole('link', { name: 'Aportes', exact: true }).click()
+  await page.getByRole('link', { name: 'Sugestão de aporte' }).click()
+  await page.getByLabel('Valor em reais').fill('1.234,56')
+  await page.getByRole('button', { name: 'Atualizar' }).click()
 
   await expect(
-    page.getByRole('heading', { name: 'Uma proposta para o seu aporte' }),
+    page.getByRole('heading', { name: /Ativos em reais/ }),
   ).toBeVisible()
   await expect(page.getByText('ITUB4', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('R$ 1.098,00').first()).toBeVisible()
+  await page.getByRole('button', { name: 'Ver detalhes de ITUB4' }).click()
   await expect(
     page.getByText('ITUB4 está 8,50% abaixo do preço teto.'),
   ).toBeVisible()
@@ -124,13 +129,33 @@ test('não mostra recomendação antiga quando o serviço de mercado retorna 503
     })
   })
   await signIn(page)
-  await page.getByRole('link', { name: 'Planejar aporte', exact: true }).click()
-  await page.getByLabel('Valor disponível').fill('500,00')
-  await page.getByRole('button', { name: 'Ver sugestão de aporte' }).click()
+  await page.getByRole('link', { name: 'Aportes', exact: true }).click()
+  await page.getByRole('link', { name: 'Sugestão de aporte' }).click()
+  await page.getByLabel('Valor em reais').fill('500,00')
+  await page.getByRole('button', { name: 'Atualizar' }).click()
   await expect(page.getByRole('alert')).toContainText(
     'cotações necessárias estão indisponíveis',
   )
   await expect(
-    page.getByRole('heading', { name: 'Uma proposta para o seu aporte' }),
+    page.getByRole('heading', { name: /Ativos em reais/ }),
   ).not.toBeVisible()
+})
+
+test('abre a configuração de ativos pela central de aportes', async ({ page }) => {
+  await mockAuthenticatedApi(page, async (route) => {
+    await route.fulfill({ status: 503, json: { message: 'Unavailable' } })
+  })
+
+  await signIn(page)
+  await page.getByRole('link', { name: 'Aportes', exact: true }).click()
+  await page
+    .getByRole('link', { name: /Configuração de ativos e preço teto/ })
+    .click()
+
+  await expect(
+    page.getByRole('main').getByRole('heading', { name: 'Configuração de ativos' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Nenhum ativo configurado' }),
+  ).toBeVisible()
 })

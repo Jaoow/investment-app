@@ -283,6 +283,15 @@
   font-weight: 600;
 }
 
+.market-status .status-dot {
+  background: var(--info);
+}
+
+.market-status strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
 .status-dot {
   width: 7px;
   height: 7px;
@@ -475,6 +484,44 @@
   margin-bottom: 18px;
 }
 
+.portfolio-overview {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 22px;
+  margin-bottom: 18px;
+}
+
+.portfolio-overview-chart .composition-content {
+  grid-template-columns: minmax(0, 1fr);
+  padding-top: 0;
+}
+
+.portfolio-overview-chart .composition-donut {
+  width: min(100%, 236px);
+}
+
+.portfolio-overview-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 4px;
+}
+
+.portfolio-overview-result > span:first-child {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.portfolio-overview-result strong {
+  font-size: 25px;
+  font-variant-numeric: tabular-nums;
+}
+
+.portfolio-overview-result > span:last-child {
+  font-size: 12px;
+}
+
 .portfolio-class-card {
   display: flex;
   min-width: 0;
@@ -660,6 +707,299 @@
 
 .portfolio-history-card {
   margin-bottom: 16px;
+}
+
+.contribution-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.contribution-hub-option {
+  display: grid;
+  min-height: 150px;
+  grid-template-columns: 42px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 20px;
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.contribution-hub-option:hover {
+  border-color: color-mix(in srgb, var(--primary) 50%, var(--border));
+  background: color-mix(in srgb, var(--primary) 4%, var(--surface));
+}
+
+.app-shell[data-route='/aporte/configuracao'] .topbar {
+  display: none;
+}
+
+.contribution-settings-heading {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 0 15px;
+}
+
+.contribution-settings-heading h1 {
+  min-width: 0;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.contribution-settings-heading > .button {
+  min-height: 39px;
+}
+
+.contribution-settings-heading > .button:first-child {
+  width: 40px;
+  height: 40px;
+}
+
+.contribution-class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  margin-top: 18px;
+}
+
+.contribution-class-group {
+  min-width: 0;
+}
+
+.contribution-class-heading {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 6px;
+}
+
+.contribution-class-toggle {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  padding: 9px 0;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.contribution-class-toggle strong {
+  font-size: 15px;
+}
+
+.contribution-class-toggle > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.contribution-class-toggle svg {
+  margin-left: auto;
+  transition: transform 150ms ease;
+}
+
+.contribution-class-toggle svg.expanded {
+  transform: rotate(180deg);
+}
+
+.contribution-eligibility-checkbox {
+  width: 27px;
+  height: 27px;
+  flex: 0 0 auto;
+  appearance: none;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: white;
+  cursor: pointer;
+}
+
+.contribution-eligibility-checkbox:checked,
+.contribution-eligibility-checkbox:indeterminate {
+  border-color: var(--gain);
+  background-color: var(--gain);
+}
+
+.contribution-eligibility-checkbox:checked::after,
+.contribution-eligibility-checkbox:indeterminate::after {
+  display: block;
+  width: 7px;
+  height: 12px;
+  margin: 3px 0 0 8px;
+  transform: rotate(45deg);
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  content: '';
+}
+
+.contribution-eligibility-checkbox:indeterminate::after {
+  width: 10px;
+  height: 2px;
+  margin: 10px 0 0 7px;
+  transform: none;
+  border: 0;
+  background: currentColor;
+}
+
+.contribution-eligibility-checkbox:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--focus) 28%, transparent);
+  outline-offset: 2px;
+}
+
+.contribution-eligibility-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.contribution-class-assets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.contribution-setting-asset {
+  display: grid;
+  min-height: 96px;
+  grid-template-columns: 28px minmax(0, 1fr) minmax(125px, auto);
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 12px 14px;
+}
+
+.contribution-setting-main {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(155px, 0.6fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.contribution-setting-identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.contribution-setting-identity > span:last-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.contribution-setting-identity strong {
+  font-size: 14px;
+}
+
+.contribution-setting-identity small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contribution-ceiling-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.contribution-ceiling-input {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 5px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.contribution-ceiling-input:focus-within {
+  border-color: var(--focus);
+}
+
+.contribution-ceiling-input input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.contribution-ceiling-input input::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+.contribution-setting-quote {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+}
+
+.contribution-setting-quote > strong {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.contribution-settings-note {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.contribution-hub-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--primary);
+}
+
+.contribution-hub-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.contribution-hub-copy strong {
+  font-size: 14px;
+}
+
+.contribution-hub-copy > span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
 }
 
 .portfolio-chart-periods {
@@ -1659,6 +1999,256 @@
   grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.8fr);
   align-items: start;
   gap: 17px;
+}
+
+.contribution-simulation {
+  width: min(100%, 860px);
+  margin: 0 auto;
+}
+
+.app-shell[data-route='/aporte/simular'] .topbar {
+  display: none;
+}
+
+.contribution-simulation-header {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 0 15px;
+}
+
+.contribution-simulation-header > .button {
+  width: 40px;
+  height: 40px;
+}
+
+.contribution-simulation-title {
+  min-width: 0;
+}
+
+.contribution-simulation-title .eyebrow {
+  margin: 0 0 2px;
+}
+
+.contribution-simulation-title h1 {
+  overflow: hidden;
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contribution-simulation-budget {
+  margin: 20px 0 30px;
+}
+
+.contribution-simulation-budget-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.contribution-simulation-budget-heading label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.contribution-simulation-budget-heading > span {
+  white-space: nowrap;
+}
+
+.contribution-simulation-budget-heading strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.contribution-amount-input {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--text) 5%, var(--surface));
+  padding: 0 16px;
+  color: var(--muted);
+  font-size: 22px;
+}
+
+.contribution-amount-input:focus-within {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 17%, transparent);
+}
+
+.contribution-amount-input input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+}
+
+.contribution-amount-input input::placeholder {
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+.contribution-simulation-hint {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.suggestion-result {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.result-heading {
+  padding: 0 0 2px;
+}
+
+.result-heading h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.result-heading h2 span {
+  color: var(--muted);
+  font-size: inherit;
+  font-weight: 600;
+}
+
+.suggestion-list {
+  gap: 9px;
+}
+
+.suggestion-asset {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.suggestion-asset-row {
+  display: grid;
+  min-height: 88px;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 0.62fr) 38px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.suggestion-asset-name {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.suggestion-asset-name > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.suggestion-asset-name strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.suggestion-asset-name > div > span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-asset-value {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.suggestion-asset-value strong {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.suggestion-asset-value > span {
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.suggestion-details-button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 2px solid var(--gain);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gain);
+  cursor: pointer;
+}
+
+.suggestion-details-button:hover,
+.suggestion-details-button[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--gain) 12%, var(--surface));
+}
+
+.suggestion-asset-details {
+  border-top: 1px solid var(--border);
+  padding: 12px 15px 13px;
+  background: color-mix(in srgb, var(--background) 70%, var(--surface));
+}
+
+.suggestion-asset-score {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.suggestion-asset-details ul {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 9px 0;
+  padding-left: 17px;
+  font-size: 11px;
+}
+
+.suggestion-asset-source {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.contribution-simulation .suggestion-disclaimer,
+.contribution-simulation .result-actions {
+  margin-top: 2px;
 }
 
 .contribution-main,
@@ -3086,6 +3676,86 @@
     padding-right: 25px;
     padding-left: 25px;
   }
+
+  .contribution-simulation-header {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    gap: 7px;
+    padding-bottom: 12px;
+  }
+
+  .contribution-simulation-header > .button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .contribution-simulation-title h1 {
+    font-size: 17px;
+  }
+
+  .contribution-simulation-header > .button:last-child {
+    min-height: 36px;
+    gap: 5px;
+    padding: 0 6px;
+    font-size: 11px;
+  }
+
+  .contribution-simulation-budget {
+    margin: 17px 0 24px;
+  }
+
+  .contribution-simulation-budget-heading {
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .contribution-amount-input {
+    min-height: 58px;
+    padding: 0 13px;
+    font-size: 19px;
+  }
+
+  .contribution-amount-input input {
+    font-size: 21px;
+  }
+
+  .suggestion-asset-row {
+    min-height: 76px;
+    grid-template-columns: minmax(0, 1fr) minmax(100px, auto) 34px;
+    gap: 7px;
+    padding: 10px;
+  }
+
+  .suggestion-asset-name {
+    gap: 8px;
+  }
+
+  .suggestion-asset-name .asset-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    font-size: 12px;
+  }
+
+  .suggestion-asset-name strong {
+    font-size: 12px;
+  }
+
+  .suggestion-asset-name > div > span {
+    font-size: 9px;
+  }
+
+  .suggestion-asset-value strong {
+    font-size: 12px;
+  }
+
+  .suggestion-asset-value > span {
+    font-size: 9px;
+  }
+
+  .suggestion-details-button {
+    width: 32px;
+    height: 32px;
+  }
 }
 
 @media (max-width: 920px) {
@@ -3397,6 +4067,101 @@
   .portfolio-class-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+  }
+
+  .portfolio-overview {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .portfolio-overview-chart .composition-donut {
+    width: min(100%, 210px);
+  }
+
+  .portfolio-overview-result {
+    align-items: center;
+    text-align: center;
+  }
+
+  .contribution-hub-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .contribution-hub-option {
+    min-height: 120px;
+    padding: 15px;
+  }
+
+  .contribution-settings-heading {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    gap: 7px;
+    padding-bottom: 12px;
+  }
+
+  .contribution-settings-heading h1 {
+    font-size: 17px;
+  }
+
+  .contribution-settings-heading > .button:first-child {
+    width: 36px;
+    height: 36px;
+  }
+
+  .contribution-settings-heading > .button:last-child {
+    min-height: 36px;
+    gap: 5px;
+    padding: 0 7px;
+    font-size: 11px;
+  }
+
+  .contribution-class-list {
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .contribution-class-heading {
+    min-height: 53px;
+    gap: 9px;
+    padding: 0 2px;
+  }
+
+  .contribution-setting-asset {
+    min-height: 112px;
+    grid-template-columns: 27px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 8px;
+    padding: 12px 10px;
+  }
+
+  .contribution-setting-main {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .contribution-setting-identity {
+    gap: 8px;
+  }
+
+  .contribution-setting-identity .asset-avatar {
+    width: 38px;
+    height: 38px;
+  }
+
+  .contribution-setting-quote {
+    align-items: flex-end;
+    padding-top: 2px;
+  }
+
+  .contribution-setting-quote > strong {
+    font-size: 12px;
+  }
+
+  .contribution-setting-quote .badge {
+    max-width: 100px;
+    overflow: hidden;
+    font-size: 8px;
+    text-overflow: ellipsis;
   }
 
   .portfolio-class-card {

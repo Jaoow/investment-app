@@ -3,7 +3,7 @@ import { ArrowRight, BriefcaseBusiness } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { usePortfolio } from '@/app/usePortfolio'
-import { usePortfolioSummary } from '@/shared/api/queries'
+import { useAllocations, usePortfolioSummary } from '@/shared/api/queries'
 import type { AssetSummary } from '@/shared/api/models'
 import { AllocationChart } from '@/shared/components/AllocationChart'
 import {
@@ -37,6 +37,7 @@ function sumValue(assets: AssetSummary[], field: 'currentValue' | 'totalInvested
 export function PortfolioPage() {
   const { selectedPortfolio } = usePortfolio()
   const summary = usePortfolioSummary(selectedPortfolio?.id)
+  const allocations = useAllocations(selectedPortfolio?.id)
   const [selectedClass, setSelectedClass] = useState<string | null>(null)
   const assets = summary.data?.assetSummaries ?? []
   const portfolioValue = new Big(String(summary.data?.currentValue ?? 0))
@@ -47,6 +48,16 @@ export function PortfolioPage() {
   const selectedInvested = sumValue(selectedAssets, 'totalInvested')
   const selectedProfit = selectedValue.minus(selectedInvested)
   const composition = buildPortfolioComposition(selectedAssets)
+  const selectedAllocation = allocations.data?.find(
+    (allocation) => allocation.category === selectedClass,
+  )
+  const assetTargets = Object.fromEntries(
+    (selectedAllocation?.assetAllocations ?? []).map((asset) => [
+      asset.tickerSymbol,
+      asset.targetPercentage,
+    ]),
+  )
+  const profitOrLoss = summary.data?.profitOrLoss ?? '0'
 
   return (
     <>
@@ -71,6 +82,25 @@ export function PortfolioPage() {
       )}
       {summary.data && (
         <>
+          <section className="portfolio-overview" aria-label="Resumo do patrimônio">
+            <div className="portfolio-overview-chart">
+              <AllocationChart
+                title="Patrimônio total"
+                description="Valor atual da carteira"
+                slices={[{ label: 'Patrimônio', percentage: new Big(100) }]}
+                total={String(summary.data.currentValue)}
+              />
+            </div>
+            <div className="portfolio-overview-result">
+              <span>Resultado acumulado</span>
+              <strong className={isNegative(profitOrLoss) ? 'text-loss' : 'text-gain'}>
+                {formatCurrency(profitOrLoss)}
+              </strong>
+              <span className={isNegative(summary.data.percentageChange) ? 'text-loss' : 'text-gain'}>
+                {formatPercent(summary.data.percentageChange)} sobre o total investido
+              </span>
+            </div>
+          </section>
           <section className="portfolio-class-grid" aria-label="Classes de investimento">
             {portfolioClasses.map((item) => {
               const classAssets = assets.filter(
@@ -85,6 +115,9 @@ export function PortfolioPage() {
               const returnPercentage = invested.gt(0)
                 ? profit.div(invested).times(100)
                 : new Big(0)
+              const target = allocations.data?.find(
+                (allocation) => allocation.category === item.id,
+              )?.categoryTargetPercentage
 
               return (
                 <button
@@ -109,7 +142,7 @@ export function PortfolioPage() {
                         {formatCurrency(currentValue.toString())}
                       </strong>
                       <span className="portfolio-class-meta">
-                        {formatPercent(participation.toString())} da carteira
+                        {formatPercent(participation.toString())} / {target === undefined ? 'Meta não definida' : formatPercent(target)}
                       </span>
                       <span
                         className={`portfolio-class-return ${isNegative(profit.toString()) ? 'text-loss' : 'text-gain'}`}
@@ -168,6 +201,7 @@ export function PortfolioPage() {
               <AssetTable
                 assets={selectedAssets}
                 portfolioValue={selectedValue.toString()}
+                targetPercentages={assetTargets}
               />
             </section>
           ) : (

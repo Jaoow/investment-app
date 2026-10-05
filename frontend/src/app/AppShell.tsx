@@ -39,6 +39,8 @@ const titles: Record<string, string> = {
   '/': 'Visão geral',
   '/carteira': 'Carteira',
   '/aporte': 'Aportes',
+  '/aporte/simular': 'Sugestão de aporte',
+  '/aporte/configuracao': 'Configuração de ativos',
   '/ativos': 'Ativos',
   '/alocacao': 'Metas',
   '/movimentacoes': 'Movimentações',
@@ -81,7 +83,6 @@ export function AppShell() {
         >
           <Icon size={19} strokeWidth={1.8} aria-hidden="true" />
           <span>{label}</span>
-          {to === '/aporte' && <span className="nav-new">Novo</span>}
         </NavLink>
       ))}
       <div className="nav-divider" />
@@ -102,7 +103,7 @@ export function AppShell() {
   )
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-route={location.pathname}>
       <aside className="desktop-sidebar" aria-label="Navegação principal">
         <NavLink to="/" className="brand-lockup">
           <span className="brand-mark">i</span>
@@ -219,8 +220,10 @@ export function AppShell() {
           </div>
           <div className="topbar-actions">
             <span className="market-status">
-              <span className="status-dot" />
-              Cotações sob consulta
+              <span className="status-dot" aria-hidden="true" />
+              <span title="Cotações consultadas sob demanda; a disponibilidade é confirmada durante cada consulta.">
+                Fonte de mercado <strong>BRAPI</strong>
+              </span>
             </span>
             <Button
               variant="ghost"

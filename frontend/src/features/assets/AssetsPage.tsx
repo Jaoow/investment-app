@@ -259,7 +259,7 @@ export function AssetsPage() {
                           quote.data.regularMarketPrice,
                           quote.data.currency ?? 'BRL',
                         )
-                      : 'Cotação indisponível'}
+                      : 'Sem cotação atual'}
                   </strong>
                   {quote.data.regularMarketChangePercent !== undefined && (
                     <p

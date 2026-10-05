@@ -157,6 +157,10 @@ export interface AssetSetting {
   priceCeiling: DecimalValue | null
 }
 
+export interface ContributionEligibility {
+  assets: Record<string, boolean>
+}
+
 export interface CeilingHistory {
   id: number
   tickerSymbol: string

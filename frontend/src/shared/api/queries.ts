@@ -14,6 +14,7 @@ import type {
   Ticker,
   AssetSetting,
   CeilingHistory,
+  ContributionEligibility,
 } from './models'
 
 function requireData<T>(data: unknown, error: unknown): T {
@@ -113,10 +114,15 @@ export function useTickerSearch(search: string) {
   })
 }
 
-export function useTickerQuote(ticker: string) {
+export function useTickerQuote(
+  ticker: string,
+  options: { enabled?: boolean; refresh?: boolean } = {},
+) {
+  const enabled = options.enabled ?? true
+  const refresh = options.refresh ?? true
   return useQuery({
     queryKey: ['quote', ticker],
-    enabled: ticker.length > 0,
+    enabled: ticker.length > 0 && enabled,
     queryFn: async () => {
       const { data, error } = await api.GET('/v1/quotes', {
         params: { query: { ticker } },
@@ -124,8 +130,8 @@ export function useTickerQuote(ticker: string) {
       return requireData<Quote>(data, error)
     },
     staleTime: 30_000,
-    refetchInterval: 60_000,
-    refetchIntervalInBackground: false,
+    refetchInterval: refresh ? 60_000 : false,
+    refetchIntervalInBackground: refresh,
   })
 }
 
@@ -368,6 +374,72 @@ export function useAssetSettings(portfolioId: number | undefined) {
         },
       )
       return requireData<AssetSetting[]>(data, error)
+    },
+  })
+}
+
+export function useContributionEligibility(portfolioId: number | undefined) {
+  return useQuery({
+    queryKey: ['portfolio', portfolioId, 'contribution-eligibility'],
+    enabled: portfolioId !== undefined,
+    queryFn: async () => {
+      const { data, error } = await api.GET(
+        '/v1/portfolio/{portfolioId}/contribution-eligibility',
+        { params: { path: { portfolioId: portfolioId! } } },
+      )
+      return requireData<ContributionEligibility>(data, error)
+    },
+  })
+}
+
+export function useSaveContributionConfiguration(portfolioId: number | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (configuration: {
+      eligibility: Record<string, boolean>
+      ceilings: Record<string, string | null>
+    }) => {
+      if (portfolioId === undefined) throw new Error('Selecione uma carteira.')
+      const { data, error } = await api.PUT(
+        '/v1/portfolio/{portfolioId}/contribution-eligibility',
+        {
+          params: { path: { portfolioId } },
+          body: { assets: configuration.eligibility },
+        },
+      )
+      requireData<ContributionEligibility>(data, error)
+
+      const ceilingUpdates = await Promise.all(
+        Object.entries(configuration.ceilings).map(async ([tickerSymbol, priceCeiling]) => {
+          if (priceCeiling === null) {
+            const { error: deleteError, response } = await api.DELETE(
+              '/v1/portfolio/{portfolioId}/assets/{tickerSymbol}/ceiling',
+              { params: { path: { portfolioId, tickerSymbol } } },
+            )
+            if (!response.ok && response.status !== 404) {
+              throw new Error(errorMessage(deleteError))
+            }
+            return
+          }
+          const { error: saveError, response } = await api.PUT(
+            '/v1/portfolio/{portfolioId}/assets/{tickerSymbol}/ceiling',
+            {
+              params: { path: { portfolioId, tickerSymbol } },
+              body: { priceCeiling },
+            },
+          )
+          if (!response.ok) throw new Error(errorMessage(saveError))
+        }),
+      )
+      return ceilingUpdates
+    },
+    onSuccess: async () => {
+      if (portfolioId !== undefined) {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['portfolio', portfolioId, 'asset-settings'] }),
+          queryClient.invalidateQueries({ queryKey: ['portfolio', portfolioId, 'contribution-eligibility'] }),
+        ])
+      }
     },
   })
 }

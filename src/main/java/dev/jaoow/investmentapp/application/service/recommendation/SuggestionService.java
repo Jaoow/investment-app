@@ -167,6 +167,10 @@ public class SuggestionService {
         targets.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(target -> {
             String ticker = target.getKey();
             PortfolioAssetPreference preference = preferences.get(ticker);
+                        if (preference != null && !preference.isContributionEnabled()) {
+                                excluded.add(new ExcludedSuggestionResponse(ticker, "Ativo desabilitado para sugestões de aporte."));
+                                return;
+                        }
             if (preference == null) {
                 excluded.add(new ExcludedSuggestionResponse(ticker, "Cadastre um preço teto para este ativo nesta carteira."));
                 return;

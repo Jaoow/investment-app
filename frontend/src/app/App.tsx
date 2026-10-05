@@ -32,6 +32,16 @@ const ContributionPage = lazy(() =>
     default: module.ContributionPage,
   })),
 )
+const ContributionHubPage = lazy(() =>
+  import('@/features/contributions/ContributionHubPage').then((module) => ({
+    default: module.ContributionHubPage,
+  })),
+)
+const ContributionSettingsPage = lazy(() =>
+  import('@/features/contributions/ContributionSettingsPage').then((module) => ({
+    default: module.ContributionSettingsPage,
+  })),
+)
 const AssetsPage = lazy(() =>
   import('@/features/assets/AssetsPage').then((module) => ({
     default: module.AssetsPage,
@@ -113,7 +123,9 @@ export function App() {
                 >
                   <Route path="/" element={<DashboardPage />} />
                   <Route path="/carteira" element={<PortfolioPage />} />
-                  <Route path="/aporte" element={<ContributionPage />} />
+                  <Route path="/aporte" element={<ContributionHubPage />} />
+                  <Route path="/aporte/simular" element={<ContributionPage />} />
+                  <Route path="/aporte/configuracao" element={<ContributionSettingsPage />} />
                   <Route path="/ativos" element={<AssetsPage />} />
                   <Route path="/alocacao" element={<AllocationsPage />} />
                   <Route path="/movimentacoes" element={<MovementsPage />} />

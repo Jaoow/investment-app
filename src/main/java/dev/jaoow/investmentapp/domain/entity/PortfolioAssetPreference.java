@@ -23,6 +23,9 @@ public class PortfolioAssetPreference {
     @Column(nullable = false)
     private String tickerSymbol;
 
-    @Column(nullable = false, precision = 19, scale = 4)
+    @Column(precision = 19, scale = 4)
     private BigDecimal priceCeiling;
+
+    @Column(name = "contribution_enabled", nullable = false)
+    private boolean contributionEnabled = true;
 }

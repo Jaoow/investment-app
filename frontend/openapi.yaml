@@ -241,6 +241,35 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/AssetSetting'
+  /v1/portfolio/{portfolioId}/contribution-eligibility:
+    parameters:
+      - $ref: '#/components/parameters/PortfolioId'
+    get:
+      operationId: getContributionEligibility
+      responses:
+        '200':
+          description: Per-portfolio asset participation in contribution suggestions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContributionEligibility'
+    put:
+      operationId: saveContributionEligibility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContributionEligibility'
+      responses:
+        '200':
+          description: Saved participation settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContributionEligibility'
+        '403':
+          $ref: '#/components/responses/Error'
   /v1/ticker/register:
     post:
       operationId: registerTicker
@@ -692,6 +721,13 @@ components:
       properties:
         tickerSymbol: { type: string }
         priceCeiling: { $ref: '#/components/schemas/Decimal' }
+    ContributionEligibility:
+      type: object
+      required: [assets]
+      properties:
+        assets:
+          type: object
+          additionalProperties: { type: boolean }
     CeilingHistory:
       type: object
       required: [id, tickerSymbol, action, changedAt]

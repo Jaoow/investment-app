@@ -1,7 +1,9 @@
 package dev.jaoow.investmentapp.application.service;
 
 import dev.jaoow.investmentapp.application.dto.request.PortfolioAssetPreferenceRequest;
+import dev.jaoow.investmentapp.application.dto.request.ContributionEligibilityRequest;
 import dev.jaoow.investmentapp.application.dto.response.PortfolioAssetPreferenceResponse;
+import dev.jaoow.investmentapp.application.dto.response.ContributionEligibilityResponse;
 import dev.jaoow.investmentapp.application.dto.response.PriceCeilingHistoryResponse;
 import dev.jaoow.investmentapp.application.dto.response.PortfolioAssetSettingResponse;
 import dev.jaoow.investmentapp.application.exception.PortfolioNotFoundException;
@@ -26,8 +28,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -62,6 +68,10 @@ public class PortfolioAssetPreferenceService {
                 .findByPortfolioIdAndTickerSymbol(portfolioId, symbol)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "No price ceiling is configured for " + symbol + " in this portfolio."));
+        if (preference.getPriceCeiling() == null) {
+            throw new ResourceNotFoundException(
+                "No price ceiling is configured for " + symbol + " in this portfolio.");
+        }
         return toResponse(preference);
     }
 
@@ -102,8 +112,75 @@ public class PortfolioAssetPreferenceService {
         PortfolioAssetPreference preference = preferenceRepository
                 .findByPortfolioIdAndTickerSymbol(portfolioId, tickerSymbol)
                 .orElseThrow(() -> new ResourceNotFoundException("Nenhum preço teto configurado para este ativo."));
+        if (preference.getPriceCeiling() == null) {
+            throw new ResourceNotFoundException("Nenhum preço teto configurado para este ativo.");
+        }
         recordHistory(portfolioId, tickerSymbol, preference.getPriceCeiling(), null, "REMOVED");
-        preferenceRepository.deleteByPortfolioIdAndTickerSymbol(portfolioId, tickerSymbol);
+        if (preference.isContributionEnabled()) {
+            preferenceRepository.delete(preference);
+        } else {
+            preference.setPriceCeiling(null);
+            preferenceRepository.save(preference);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#portfolioId, authentication)")
+    public ContributionEligibilityResponse getContributionEligibility(Long portfolioId) {
+        Map<String, Boolean> assets = new LinkedHashMap<>();
+        preferenceRepository.findAllByPortfolioId(portfolioId).stream()
+                .sorted((left, right) -> left.getTickerSymbol().compareTo(right.getTickerSymbol()))
+                .forEach(preference -> assets.put(
+                        preference.getTickerSymbol(), preference.isContributionEnabled()));
+        return new ContributionEligibilityResponse(assets);
+    }
+
+    @Transactional
+    @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#portfolioId, authentication)")
+    public ContributionEligibilityResponse setContributionEligibility(
+            Long portfolioId, ContributionEligibilityRequest request) {
+        if (request == null || request.assets() == null) {
+            throw new IllegalArgumentException("Asset eligibility settings are required.");
+        }
+        Portfolio portfolio = portfolioRepository.findById(portfolioId)
+                .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
+        Map<String, Boolean> normalizedSettings = new LinkedHashMap<>();
+        request.assets().forEach((tickerSymbol, enabled) -> {
+            normalizedSettings.put(TickerSymbol.normalize(tickerSymbol), enabled);
+            if (enabled == null) {
+                throw new IllegalArgumentException("Eligibility value is required for " + tickerSymbol + ".");
+            }
+        });
+
+        Set<String> knownSymbols = new HashSet<>();
+        tickerRepository.findAllById(normalizedSettings.keySet())
+                .forEach(ticker -> knownSymbols.add(ticker.getSymbol()));
+        for (String symbol : normalizedSettings.keySet()) {
+            if (!knownSymbols.contains(symbol)) throw new TickerNotFoundException(symbol);
+        }
+
+        Map<String, PortfolioAssetPreference> existing = preferenceRepository.findAllByPortfolioId(portfolioId)
+                .stream().collect(Collectors.toMap(PortfolioAssetPreference::getTickerSymbol, Function.identity()));
+        List<PortfolioAssetPreference> toSave = new ArrayList<>();
+        List<PortfolioAssetPreference> toDelete = new ArrayList<>();
+        normalizedSettings.forEach((symbol, enabled) -> {
+            PortfolioAssetPreference preference = existing.get(symbol);
+            if (preference == null && enabled) return;
+            if (preference == null) {
+                preference = new PortfolioAssetPreference();
+                preference.setPortfolio(portfolio);
+                preference.setTickerSymbol(symbol);
+            }
+            if (preference.getPriceCeiling() == null && enabled) {
+                if (preference.getId() != null) toDelete.add(preference);
+                return;
+            }
+            preference.setContributionEnabled(enabled);
+            toSave.add(preference);
+        });
+        preferenceRepository.saveAll(toSave);
+        preferenceRepository.deleteAll(toDelete);
+        return getContributionEligibility(portfolioId);
     }
 
     @Transactional(readOnly = true)

@@ -51,21 +51,23 @@ export function AllocationChart({
             <small>valor atual</small>
           </span>
         </div>
-        <ul className="composition-legend">
-          {slices.map((slice, index) => (
-            <li key={slice.label}>
-              <span
-                className="composition-swatch"
-                style={{ backgroundColor: colors[index % colors.length] }}
-                aria-hidden="true"
-              />
-              <span className="composition-label" title={slice.label}>
-                {slice.label}
-              </span>
-              <strong>{formatPercent(slice.percentage.toString(), 1)}</strong>
-            </li>
-          ))}
-        </ul>
+        {slices.length > 1 && (
+          <ul className="composition-legend">
+            {slices.map((slice, index) => (
+              <li key={slice.label}>
+                <span
+                  className="composition-swatch"
+                  style={{ backgroundColor: colors[index % colors.length] }}
+                  aria-hidden="true"
+                />
+                <span className="composition-label" title={slice.label}>
+                  {slice.label}
+                </span>
+                <strong>{formatPercent(slice.percentage.toString(), 1)}</strong>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </Card>
   )

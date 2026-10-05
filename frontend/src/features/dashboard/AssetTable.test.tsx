@@ -52,6 +52,21 @@ describe('AssetTable', () => {
     expect(screen.queryByRole('link', { name: 'MXRF11' })).not.toBeInTheDocument()
   })
 
+  it('shows current class participation beside the configured target', () => {
+    render(
+      <MemoryRouter>
+        <AssetTable
+          assets={[asset('PETR4', 300)]}
+          portfolioValue="1000"
+          targetPercentages={{ PETR4: '5' }}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('columnheader', { name: /Participação \/ meta/ })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: '30,00% / 5,00%' })).toBeInTheDocument()
+  })
+
   it('sorts by ticker and paginates ten rows at a time', async () => {
     const user = userEvent.setup()
     const assets = Array.from({ length: 12 }, (_, index) =>

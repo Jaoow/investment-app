@@ -41,6 +41,7 @@ interface AssetRow extends AssetSummary {
   categoryLabel: string
   quote?: DecimalValue
   participation: Big
+  targetPercentage?: DecimalValue
 }
 
 function decimal(value?: DecimalValue): Big {
@@ -68,9 +69,11 @@ function compareRows(left: AssetRow, right: AssetRow, field: SortField): number 
 export function AssetTable({
   assets,
   portfolioValue,
+  targetPercentages,
 }: {
   assets: AssetSummary[]
   portfolioValue: DecimalValue
+  targetPercentages?: Record<string, DecimalValue>
 }) {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
@@ -93,6 +96,7 @@ export function AssetTable({
       participation: totalValue.gt(0)
         ? decimal(asset.currentValue).div(totalValue).times(100)
         : new Big(0),
+      targetPercentage: targetPercentages?.[asset.tickerSymbol],
     }
   })
 
@@ -210,7 +214,7 @@ export function AssetTable({
                   <th>{sortButton('Cotação', 'quote')}</th>
                   <th>{sortButton('Investido', 'totalInvested')}</th>
                   <th>{sortButton('Valor atual', 'currentValue')}</th>
-                  <th>{sortButton('Participação', 'participation')}</th>
+                  <th>{sortButton(targetPercentages ? 'Participação / meta' : 'Participação', 'participation')}</th>
                   <th>{sortButton('Lucro %', 'percentageChange')}</th>
                   <th>{sortButton('Lucro R$', 'profitOrLoss')}</th>
                 </tr>
@@ -232,7 +236,11 @@ export function AssetTable({
                       <td>{asset.quote === undefined ? '—' : formatCurrency(asset.quote)}</td>
                       <td>{formatCurrency(asset.totalInvested)}</td>
                       <td>{formatCurrency(asset.currentValue)}</td>
-                      <td>{formatPercent(asset.participation.toString())}</td>
+                      <td>
+                        {formatPercent(asset.participation.toString())}
+                        {asset.targetPercentage !== undefined &&
+                          ` / ${formatPercent(asset.targetPercentage)}`}
+                      </td>
                       <td className={negative ? 'text-loss' : 'text-gain'}>
                         {formatPercent(asset.percentageChange)}
                       </td>
