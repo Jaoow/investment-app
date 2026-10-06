@@ -25,10 +25,12 @@ public class TickerService {
 
     private final TickerRepository tickerRepository;
     private final ModelMapper modelMapper;
+    private final MarketTickerProvider marketTickerProvider;
 
-    public TickerService(TickerRepository tickerRepository, ModelMapper modelMapper) {
+    public TickerService(TickerRepository tickerRepository, ModelMapper modelMapper, MarketTickerProvider marketTickerProvider) {
         this.tickerRepository = tickerRepository;
         this.modelMapper = modelMapper;
+        this.marketTickerProvider = marketTickerProvider;
     }
 
     @Transactional(readOnly = true)
@@ -67,6 +69,23 @@ public class TickerService {
         Ticker ticker = new Ticker();
         ticker.setSymbol(symbol);
         ticker.setCategory(request.getCategory());
+
+        try {
+            List<dev.jaoow.investmentapp.application.model.MarketTicker> details = marketTickerProvider.searchTickers(symbol, null);
+            if (details != null && !details.isEmpty()) {
+                dev.jaoow.investmentapp.application.model.MarketTicker detail = details.stream()
+                        .filter(t -> t.getSymbol().equalsIgnoreCase(symbol))
+                        .findFirst()
+                        .orElse(details.get(0));
+                ticker.setName(detail.getName() != null ? detail.getName() : detail.getLongName());
+                ticker.setLogoUrl(detail.getLogoUrl());
+                ticker.setSector(detail.getSector());
+                ticker.setSubSector(detail.getSubSector());
+            }
+        } catch (Exception ignored) {
+            // Ignora falha silenciosamente caso não consiga buscar no provedor
+        }
+
         return modelMapper.map(tickerRepository.save(ticker), TickerResponse.class);
     }
 

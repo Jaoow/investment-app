@@ -20,4 +20,8 @@ public class Ticker {
     private String sector;
 
     private String subSector;
+
+    private String name;
+
+    private String logoUrl;
 }

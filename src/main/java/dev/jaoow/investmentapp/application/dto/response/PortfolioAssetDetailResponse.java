@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 public record PortfolioAssetDetailResponse(
         String ticker,
         String name,
+        String logoUrl,
         String sector,
         BigDecimal quantity,
         BigDecimal averagePrice,

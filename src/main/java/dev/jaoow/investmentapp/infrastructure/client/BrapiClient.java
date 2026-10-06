@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Optional;
 import java.time.Instant;
 import java.util.concurrent.Semaphore;
+import dev.jaoow.investmentapp.application.dto.response.BrapiTickerListResponse;
+import java.util.concurrent.Semaphore;
 
 @Component
 public class BrapiClient {
@@ -94,6 +96,51 @@ public class BrapiClient {
         }
 
         return Optional.empty();
+    }
+
+    @Cacheable(
+            value = "tickers_search",
+            key = "#search + ':' + #type",
+            cacheManager = "cacheManagerWithRefresh",
+            sync = true
+    )
+    public Optional<BrapiTickerListResponse> searchTickers(String search, String type) {
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder
+                .fromHttpUrl("https://brapi.dev/api/v2/tickers");
+
+        if (search != null && !search.isBlank()) {
+            uriBuilder.queryParam("search", search);
+        }
+        if (type != null && !type.isBlank()) {
+            uriBuilder.queryParam("type", type);
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        if (apiToken != null && !apiToken.isBlank()) {
+            headers.setBearerAuth(apiToken);
+        }
+
+        BrapiTickerListResponse response;
+        try {
+            quoteRequestPermit.acquire();
+            try {
+                response = restTemplate.exchange(
+                        uriBuilder.build().encode().toUri(),
+                        HttpMethod.GET,
+                        new HttpEntity<>(headers),
+                        BrapiTickerListResponse.class
+                ).getBody();
+            } finally {
+                quoteRequestPermit.release();
+            }
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new MarketDataUnavailableException("Interrupted while waiting for the market data provider.", ex);
+        } catch (HttpClientErrorException.TooManyRequests ex) {
+            throw new MarketDataUnavailableException("Market data provider rate limit reached. Retry after a short delay.", ex);
+        }
+
+        return Optional.ofNullable(response);
     }
 
     @Setter

@@ -89,12 +89,16 @@ public class PortfolioAnalyticsService {
             .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal portfolioTarget = categoryTarget.multiply(targetInClass).divide(ONE_HUNDRED, 2, RoundingMode.HALF_UP);
         BrapiFields quote = asset.getBrapiFields();
-        String name = quote == null ? ticker : firstAvailableName(quote, ticker);
+        String name = tickerFields.getName() != null ? tickerFields.getName() : 
+                      (quote == null ? ticker : firstAvailableName(quote, ticker));
+        String logoUrl = tickerFields.getLogoUrl() != null ? tickerFields.getLogoUrl() : 
+                         (quote != null ? quote.getLogourl() : null);
         String sector = tickerFields.getSector() == null ? tickerFields.getSubSector() : tickerFields.getSector();
 
         return new PortfolioAssetDetailResponse(
             asset.getTickerSymbol(),
             name,
+            logoUrl,
             sector == null ? "Não informado" : sector,
             asset.getQuantity(),
             asset.getAveragePrice(),
