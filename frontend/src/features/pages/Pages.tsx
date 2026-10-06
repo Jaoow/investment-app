@@ -1,7 +1,0 @@
-export { AllocationsPage } from '@/features/allocations/AllocationsPage'
-export { AssetsPage } from '@/features/assets/AssetsPage'
-export { ContributionPage } from '@/features/contributions/ContributionPage'
-export { DashboardPage } from '@/features/dashboard/DashboardPage'
-export { MovementsPage } from '@/features/movements/MovementsPage'
-export { SharingPage } from '@/features/sharing/SharingPages'
-export { SettingsPage } from '@/features/settings/SettingsPage'
