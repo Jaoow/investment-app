@@ -287,7 +287,8 @@ class SuggestionIntegrationTests {
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.portfolioId").value(portfolioId))
                         .andExpect(jsonPath("$.assetsCount").value(0))
-                        .andExpect(jsonPath("$.assets").isEmpty());
+                        .andExpect(jsonPath("$.assets").isEmpty())
+                        .andExpect(jsonPath("$.classes.length()").value(6));
 
                 mockMvc.perform(get("/v1/portfolio/{id}/classes", portfolioId))
                                 .andExpect(status().isOk())

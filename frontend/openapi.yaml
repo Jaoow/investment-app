@@ -793,6 +793,9 @@ components:
         assets:
           type: array
           items: { $ref: '#/components/schemas/AssetSummary' }
+        classes:
+          type: array
+          items: { $ref: '#/components/schemas/PortfolioClass' }
     PortfolioOverview:
       type: object
       required: [portfolioId, patrimony, investedAmount, profitAmount, profitPercentage, assetsCount, assets]

@@ -35,7 +35,8 @@ public class PortfolioAnalyticsController {
                 summary.getProfitOrLoss(),
                 summary.getPercentageChange(),
                 summary.getAssetSummaries().size(),
-                summary.getAssetSummaries());
+                summary.getAssetSummaries(),
+                portfolioAnalyticsService.getClasses(portfolioId, summary));
     }
 
     @GetMapping("/classes")

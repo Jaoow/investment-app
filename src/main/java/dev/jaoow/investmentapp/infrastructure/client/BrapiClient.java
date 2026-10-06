@@ -1,6 +1,7 @@
 package dev.jaoow.investmentapp.infrastructure.client;
 
 import dev.jaoow.investmentapp.application.dto.response.BrapiQuoteDto;
+import dev.jaoow.investmentapp.application.exception.MarketDataUnavailableException;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,17 +9,21 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
 import java.time.Instant;
+import java.util.concurrent.Semaphore;
 
 @Component
 public class BrapiClient {
     private final RestTemplate restTemplate;
+    private final Semaphore quoteRequestPermit = new Semaphore(1, true);
 
     @Value("${brapi.api.token}")
     private String apiToken;
@@ -31,7 +36,7 @@ public class BrapiClient {
             value = "quotes",
             key = "#ticker + ':' + #range + ':' + #interval + ':' + #fundamental + ':' + #dividends",
             cacheManager = "cacheManagerWithRefresh",
-            unless="#result == null"
+            sync = true
     )
     public Optional<BrapiQuoteDto> getQuote(String ticker, String range, String interval, Boolean fundamental, Boolean dividends) {
         UriComponentsBuilder uriBuilder = UriComponentsBuilder
@@ -59,12 +64,25 @@ public class BrapiClient {
             headers.setBearerAuth(apiToken);
         }
 
-        BrapiResponse response = restTemplate.exchange(
-                uriBuilder.build().encode().toUri(),
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                BrapiResponse.class
-        ).getBody();
+        BrapiResponse response;
+        try {
+            quoteRequestPermit.acquire();
+            try {
+                response = restTemplate.exchange(
+                        uriBuilder.build().encode().toUri(),
+                        HttpMethod.GET,
+                        new HttpEntity<>(headers),
+                        BrapiResponse.class
+                ).getBody();
+            } finally {
+                quoteRequestPermit.release();
+            }
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new MarketDataUnavailableException("Interrupted while waiting for the market data provider.", ex);
+        } catch (HttpClientErrorException.TooManyRequests ex) {
+            throw new MarketDataUnavailableException("Market data provider rate limit reached. Retry after a short delay.", ex);
+        }
         if (response != null && response.getResults() != null && !response.getResults().isEmpty()) {
             BrapiQuoteDto quote = response.getResults().getFirst().getData();
             if (quote == null) {

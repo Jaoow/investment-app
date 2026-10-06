@@ -12,6 +12,7 @@ public record PortfolioOverviewResponse(
         BigDecimal profitAmount,
         BigDecimal profitPercentage,
         int assetsCount,
-        List<AssetSummaryResponse> assets
+        List<AssetSummaryResponse> assets,
+        List<PortfolioClassResponse> classes
 ) {
 }

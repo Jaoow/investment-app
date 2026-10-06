@@ -35,6 +35,10 @@ public class PortfolioAnalyticsService {
 
     public List<PortfolioClassResponse> getClasses(Long portfolioId) {
         PortfolioSummaryResponse portfolioSummary = portfolioSummaryService.getPortfolioSummary(portfolioId, null);
+        return getClasses(portfolioId, portfolioSummary);
+    }
+
+    public List<PortfolioClassResponse> getClasses(Long portfolioId, PortfolioSummaryResponse portfolioSummary) {
         List<CategoryAllocationResponse> allocations = allocationService.getAllocationsWithZeroValues(portfolioId);
         Map<AssetCategory, List<AssetSummaryResponse>> assetsByCategory = assetsByCategory(portfolioSummary.getAssetSummaries());
         BigDecimal portfolioValue = portfolioSummary.getCurrentValue();
@@ -47,12 +51,12 @@ public class PortfolioAnalyticsService {
 
     public PortfolioClassDetailResponse getClassDetail(Long portfolioId, String classId) {
         AssetCategory category = resolveCategory(classId);
-        PortfolioClassResponse summary = getClasses(portfolioId).stream()
-                .filter(item -> item.id().equals(frontendId(category)))
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Unknown asset class: " + classId));
-        PortfolioSummaryResponse portfolioSummary = portfolioSummaryService.getPortfolioSummary(portfolioId, category.name());
-        return new PortfolioClassDetailResponse(summary, portfolioSummary.getAssetSummaries());
+        PortfolioSummaryResponse portfolioSummary = portfolioSummaryService.getPortfolioSummary(portfolioId, null);
+        List<CategoryAllocationResponse> allocations = allocationService.getAllocationsWithZeroValues(portfolioId);
+        List<AssetSummaryResponse> classAssets = assetsByCategory(portfolioSummary.getAssetSummaries())
+            .getOrDefault(category, List.of());
+        PortfolioClassResponse summary = summarizeClass(category, classAssets, allocations, portfolioSummary.getCurrentValue());
+        return new PortfolioClassDetailResponse(summary, classAssets);
     }
 
         public PortfolioAssetDetailResponse getAssetDetail(Long portfolioId, String ticker) {
@@ -67,7 +71,6 @@ public class PortfolioAnalyticsService {
         }
 
         AssetCategory category = resolveCategory(tickerFields.getCategory());
-        PortfolioSummaryResponse classSummary = portfolioSummaryService.getPortfolioSummary(portfolioId, category.name());
         List<CategoryAllocationResponse> allocations = allocationService.getAllocationsWithZeroValues(portfolioId);
         CategoryAllocationResponse categoryAllocation = allocations.stream()
             .filter(item -> item.getCategory() == category)
@@ -80,6 +83,10 @@ public class PortfolioAnalyticsService {
             .orElse(BigDecimal.ZERO);
         BigDecimal categoryTarget = categoryAllocation == null ? BigDecimal.ZERO : categoryAllocation.getCategoryTargetPercentage();
         BigDecimal currentValue = asset.getCurrentValue();
+        BigDecimal classValue = portfolio.getAssetSummaries().stream()
+            .filter(item -> item.getTickerFields() != null && category.name().equals(item.getTickerFields().getCategory()))
+            .map(AssetSummaryResponse::getCurrentValue)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal portfolioTarget = categoryTarget.multiply(targetInClass).divide(ONE_HUNDRED, 2, RoundingMode.HALF_UP);
         BrapiFields quote = asset.getBrapiFields();
         String name = quote == null ? ticker : firstAvailableName(quote, ticker);
@@ -96,7 +103,7 @@ public class PortfolioAnalyticsService {
             currentValue,
             asset.getProfitOrLoss(),
             asset.getPercentageChange(),
-            percentage(currentValue, classSummary.getCurrentValue()),
+                percentage(currentValue, classValue),
             targetInClass,
             percentage(currentValue, portfolio.getCurrentValue()),
             portfolioTarget,
