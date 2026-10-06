@@ -1,7 +1,7 @@
 package dev.jaoow.investmentapp.application.dto.response;
 
 import lombok.Data;
-import java.math.BigDecimal;
+
 
 @Data
 public class TickerResponse {
@@ -9,5 +9,4 @@ public class TickerResponse {
     private String category;
     private String sector;
     private String subSector;
-    private BigDecimal priceCeiling;
 }

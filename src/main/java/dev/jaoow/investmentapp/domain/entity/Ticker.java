@@ -6,7 +6,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import lombok.Data;
-import java.math.BigDecimal;
+
 
 @Entity
 @Data
@@ -20,6 +20,4 @@ public class Ticker {
     private String sector;
 
     private String subSector;
-
-    private BigDecimal priceCeiling;
 }
