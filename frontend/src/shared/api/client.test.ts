@@ -1,7 +1,36 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { api, ApiRequestError } from './client'
+import { api, ApiRequestError, normalizeApiBaseUrl, publicApi } from './client'
 
 afterEach(() => vi.unstubAllGlobals())
+
+describe('API base URL', () => {
+  it.each([
+    ['/api', '/api'],
+    ['/api/v1', '/api'],
+    ['/api/v1/', '/api'],
+    ['http://localhost:8086/v1', 'http://localhost:8086'],
+  ])('normalizes %s to %s', (configured, expected) => {
+    expect(normalizeApiBaseUrl(configured)).toBe(expected)
+  })
+
+  it('sends login to the unversioned public auth route even with a versioned base override', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ token: 'test-token' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await publicApi.POST('/auth/login', {
+      baseUrl: normalizeApiBaseUrl('http://localhost/api/v1'),
+      body: { email: 'user@example.com', password: 'password123' },
+    })
+
+    const request = fetchMock.mock.calls[0]?.[0]
+    if (!(request instanceof Request)) throw new Error('Expected a Request instance.')
+    expect(new URL(request.url).pathname).toBe('/api/auth/login')
+    expect(request.headers.has('Authorization')).toBe(false)
+  })
+})
 
 describe('API response handling', () => {
   it('accepts an empty JSON success response without consuming the body twice', async () => {

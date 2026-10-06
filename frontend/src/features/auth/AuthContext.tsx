@@ -6,6 +6,7 @@ import {
   api,
   errorMessage,
   getAccessToken,
+  publicApi,
   setAccessToken,
   setUnauthorizedHandler,
 } from '@/shared/api/client'
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(
     async (email: string, password: string) => {
-      const { data, error } = await api.POST('/auth/login', {
+      const { data, error } = await publicApi.POST('/auth/login', {
         body: { email, password },
       })
       if (error || !data?.token) throw new Error(errorMessage(error))
@@ -59,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (name: string, email: string, password: string) => {
-      const { error } = await api.POST('/auth/register', {
+      const { error } = await publicApi.POST('/auth/register', {
         body: { name, email, password },
       })
       if (error) throw new Error(errorMessage(error))

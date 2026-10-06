@@ -2,6 +2,7 @@ package dev.jaoow.investmentapp.application.service.summary;
 
 import dev.jaoow.investmentapp.application.dto.response.BrapiQuoteDto;
 import dev.jaoow.investmentapp.application.dto.response.summary.AssetSummaryResponse;
+import dev.jaoow.investmentapp.application.exception.MarketDataUnavailableException;
 import dev.jaoow.investmentapp.application.model.AssetConsolidation;
 import dev.jaoow.investmentapp.application.model.BrapiFields;
 import dev.jaoow.investmentapp.application.model.TickerFields;
@@ -37,10 +38,11 @@ public class AssetSummaryService {
 
             String tickerSymbol = consolidation.getTickerSymbol();
             Optional<BrapiQuoteDto> currentQuote = brapiClient.getQuote(tickerSymbol, null, null, null, null);
+                BigDecimal currentPrice = currentQuote.map(BrapiQuoteDto::getRegularMarketPrice)
+                    .filter(price -> price != null && price.compareTo(BigDecimal.ZERO) > 0)
+                    .orElseThrow(() -> new MarketDataUnavailableException("No valid quote was returned for " + tickerSymbol + "."));
 
-            BigDecimal currentAssetValue = totalQuantity.multiply(
-                    currentQuote.map(BrapiQuoteDto::getRegularMarketPrice).orElse(BigDecimal.ZERO)
-            );
+                BigDecimal currentAssetValue = totalQuantity.multiply(currentPrice);
 
             AssetSummaryResponse assetSummary = createAssetSummary(tickerSymbol, currentAssetValue, investedAmount, totalQuantity);
             Optional<Ticker> foundTicker = tickerRepository.findById(tickerSymbol);

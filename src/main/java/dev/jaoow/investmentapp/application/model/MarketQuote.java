@@ -5,6 +5,7 @@ import java.time.Instant;
 
 public record MarketQuote(
         String tickerSymbol,
+        String assetName,
         BigDecimal price,
         String currency,
         BigDecimal dailyChangePercent,

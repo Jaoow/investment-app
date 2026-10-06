@@ -9,6 +9,7 @@ import java.util.List;
 @Data
 public class SuggestionItemResponse {
     private String tickerSymbol;
+    private String assetName;
     private BigDecimal quantity;
     private BigDecimal unitPrice;
     private BigDecimal estimatedValue;

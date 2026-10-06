@@ -36,6 +36,7 @@ public class BrapiMarketQuoteProvider implements MarketQuoteProvider {
         try {
             return new MarketQuote(
                     tickerSymbol,
+                    firstAvailableName(quote, tickerSymbol),
                     quote.getRegularMarketPrice(),
                     quote.getCurrency(),
                     quote.getRegularMarketChangePercent(),
@@ -46,5 +47,11 @@ public class BrapiMarketQuoteProvider implements MarketQuoteProvider {
         } catch (DateTimeParseException ex) {
             throw new MarketDataUnavailableException("Provider returned an invalid market timestamp for " + tickerSymbol + ".", ex);
         }
+    }
+
+    private String firstAvailableName(BrapiQuoteDto quote, String tickerSymbol) {
+        if (quote.getLongName() != null && !quote.getLongName().isBlank()) return quote.getLongName();
+        if (quote.getShortName() != null && !quote.getShortName().isBlank()) return quote.getShortName();
+        return tickerSymbol;
     }
 }

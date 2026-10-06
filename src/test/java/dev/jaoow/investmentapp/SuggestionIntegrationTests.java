@@ -30,6 +30,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -108,6 +109,7 @@ class SuggestionIntegrationTests {
         Instant now = Instant.now();
         given(marketQuoteProvider.getQuote("ABC")).willReturn(new MarketQuote(
                 "ABC",
+                "ABC Energia",
                 new BigDecimal("88.00"),
                 "BRL",
                 new BigDecimal("-3.00"),
@@ -135,12 +137,61 @@ class SuggestionIntegrationTests {
                 .andExpect(jsonPath("$.disclaimer").value(org.hamcrest.Matchers.containsString("não constitui consultoria")));
     }
 
+        @Test
+        @WithMockUser(username = "suggestion-owner@example.com", roles = "USER")
+        void returnsCanonicalRecommendationContractWithUiScoreScale() throws Exception {
+                mockMvc.perform(post("/v1/portfolio/{id}/recommendations/calculate", portfolioId)
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content("{\"investmentAmount\":150.00}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.investmentAmount").value(150))
+                                .andExpect(jsonPath("$.allocatedAmount").value(88))
+                                .andExpect(jsonPath("$.remainingAmount").value(62))
+                                .andExpect(jsonPath("$.recommendations[0].ticker").value("ABC"))
+                                .andExpect(jsonPath("$.recommendations[0].assetName").value("ABC Energia"))
+                                .andExpect(jsonPath("$.recommendations[0].score").value(56))
+                                .andExpect(jsonPath("$.recommendations[0].recommendationLevel").value("NEUTRAL"))
+                                .andExpect(jsonPath("$.recommendations[0].suggestedQuantity").value(1))
+                                .andExpect(jsonPath("$.recommendations[0].currentPrice").value(88))
+                                .andExpect(jsonPath("$.recommendations[0].dailyVariation").value(-3))
+                                .andExpect(jsonPath("$.recommendations[0].explanation").isArray());
+        }
+
+        @Test
+        @WithMockUser(username = "suggestion-owner@example.com", roles = "USER")
+        void returnsStandardErrorEnvelopeForInvalidRecommendationRequest() throws Exception {
+                mockMvc.perform(post("/v1/portfolio/{id}/recommendations/calculate", portfolioId)
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content("{\"investmentAmount\":0}"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                                .andExpect(jsonPath("$.status").value(400))
+                                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                                .andExpect(jsonPath("$.message").value("Request validation failed."))
+                                .andExpect(jsonPath("$.details.investmentAmount").isNotEmpty());
+        }
+
+        @Test
+        void returnsStandardErrorEnvelopeForUnauthenticatedRequests() throws Exception {
+                mockMvc.perform(get("/v1/portfolio"))
+                                .andExpect(status().isUnauthorized())
+                                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                                .andExpect(jsonPath("$.status").value(401))
+                                .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"))
+                                .andExpect(jsonPath("$.details.path").value("/v1/portfolio"));
+        }
+
     @Test
     @WithMockUser(username = "intruder@example.com", roles = "USER")
     void rejectsSuggestionsForAnotherUsersPortfolio() throws Exception {
         mockMvc.perform(post("/v1/portfolio/{id}/suggestions", portfolioId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"amount\":150.00,\"currency\":\"BRL\"}"))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/v1/portfolio/{id}/recommendations/calculate", portfolioId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"investmentAmount\":150.00}"))
                 .andExpect(status().isForbidden());
     }
 
@@ -150,6 +201,7 @@ class SuggestionIntegrationTests {
         Instant old = Instant.now().minusSeconds(3600);
         given(marketQuoteProvider.getQuote("ABC")).willReturn(new MarketQuote(
                 "ABC",
+                "ABC Energia",
                 new BigDecimal("88.00"),
                 "BRL",
                 new BigDecimal("-3.00"),
@@ -183,7 +235,7 @@ class SuggestionIntegrationTests {
     @Test
     @WithMockUser(username = "suggestion-owner@example.com", roles = "USER")
     void rejectsInconsistentCategoryTargetsWithoutDeletingSavedAllocation() throws Exception {
-        mockMvc.perform(post("/v1/portfolio/{id}/allocations", portfolioId)
+                mockMvc.perform(post("/v1/portfolio/{id}/allocations", portfolioId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 [{
@@ -198,4 +250,58 @@ class SuggestionIntegrationTests {
         assertEquals(0, categoryAllocationRepository.findByPortfolioId(portfolioId).getFirst()
                 .getTargetPercentage().compareTo(new BigDecimal("100.00")));
     }
+
+    @Test
+    @WithMockUser(username = "suggestion-owner@example.com", roles = "USER")
+    void acceptsGoalsForEveryFrontendAssetClass() throws Exception {
+        Ticker etf = new Ticker();
+        etf.setSymbol("ETF1");
+        etf.setCategory(AssetCategory.ETFS);
+        Ticker fixedIncome = new Ticker();
+        fixedIncome.setSymbol("FIX1");
+        fixedIncome.setCategory(AssetCategory.FIXED_INCOME);
+        Ticker treasury = new Ticker();
+        treasury.setSymbol("TRE1");
+        treasury.setCategory(AssetCategory.TREASURY);
+        tickerRepository.saveAll(List.of(etf, fixedIncome, treasury));
+
+        mockMvc.perform(put("/v1/portfolio/{id}/allocations", portfolioId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                [
+                                  {"category":"EQUITIES","categoryTargetPercentage":40,"assetAllocations":[{"tickerSymbol":"ABC","targetPercentage":100}]},
+                                  {"category":"ETFS","categoryTargetPercentage":20,"assetAllocations":[{"tickerSymbol":"ETF1","targetPercentage":100}]},
+                                  {"category":"FIXED_INCOME","categoryTargetPercentage":20,"assetAllocations":[{"tickerSymbol":"FIX1","targetPercentage":100}]},
+                                  {"category":"TREASURY","categoryTargetPercentage":20,"assetAllocations":[{"tickerSymbol":"TRE1","targetPercentage":100}]}
+                                ]
+                                """))
+                .andExpect(status().isOk());
+
+        assertEquals(4, categoryAllocationRepository.findByPortfolioId(portfolioId).size());
+    }
+
+        @Test
+        @WithMockUser(username = "suggestion-owner@example.com", roles = "USER")
+        void returnsServerAggregatedClassesAndClassDetails() throws Exception {
+                mockMvc.perform(get("/v1/portfolio/{id}/overview", portfolioId))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.portfolioId").value(portfolioId))
+                        .andExpect(jsonPath("$.assetsCount").value(0))
+                        .andExpect(jsonPath("$.assets").isEmpty());
+
+                mockMvc.perform(get("/v1/portfolio/{id}/classes", portfolioId))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.length()").value(6))
+                                .andExpect(jsonPath("$[?(@.id == 'equities')].targetPercentage").value(100.0));
+
+                mockMvc.perform(get("/v1/portfolio/{id}/classes/equities", portfolioId))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.summary.name").value("Ações"))
+                                .andExpect(jsonPath("$.summary.assetsCount").value(0))
+                                .andExpect(jsonPath("$.assets").isEmpty());
+
+                mockMvc.perform(get("/v1/portfolio/{id}/assets/MISSING", portfolioId))
+                        .andExpect(status().isNotFound())
+                        .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"));
+        }
 }

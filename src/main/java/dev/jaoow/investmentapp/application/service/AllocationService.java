@@ -140,9 +140,6 @@ public class AllocationService {
 
             categoryTotal = categoryTotal.add(request.getCategoryTargetPercentage());
             boolean active = request.getCategoryTargetPercentage().compareTo(BigDecimal.ZERO) > 0;
-            if (active && (request.getAssetAllocations() == null || request.getAssetAllocations().isEmpty())) {
-                throw new InvalidAllocationException("A category with a target must contain at least one asset.");
-            }
 
             BigDecimal assetTotal = BigDecimal.ZERO;
             Set<String> tickers = new HashSet<>();
@@ -164,7 +161,7 @@ public class AllocationService {
                 assetTotal = assetTotal.add(assetRequest.getTargetPercentage());
             }
 
-            if (active && assetTotal.compareTo(BigDecimal.valueOf(100)) != 0) {
+            if (active && !tickers.isEmpty() && assetTotal.compareTo(BigDecimal.valueOf(100)) != 0) {
                 throw new InvalidAllocationException("Asset targets within a category must total 100%.");
             }
         }

@@ -84,7 +84,11 @@ async function apiFetch(
   })
 }
 
-const baseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api'
+export function normalizeApiBaseUrl(configuredBaseUrl: string): string {
+  return configuredBaseUrl.replace(/\/+$/, '').replace(/\/v1$/, '')
+}
+
+const baseUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL ?? '/api')
 
 export const api = createClient<paths>({
   baseUrl,

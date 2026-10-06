@@ -1,13 +1,13 @@
 package dev.jaoow.investmentapp.application.exception;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import java.time.Instant;
+import java.util.Map;
 
-@Getter
-@Setter
-@AllArgsConstructor
-public class ErrorResponse {
-    private String message;
-    private Object details;
+public record ErrorResponse(
+        Instant timestamp,
+        int status,
+        String code,
+        String message,
+        Map<String, Object> details
+) {
 }

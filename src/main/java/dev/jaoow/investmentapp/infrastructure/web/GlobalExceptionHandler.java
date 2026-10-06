@@ -13,7 +13,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import java.util.HashMap;
+import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Slf4j
@@ -22,74 +23,62 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
-        ErrorResponse errorResponse = new ErrorResponse("Resource Not Found", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "Resource not found.", ex.getMessage());
     }
 
     @ExceptionHandler(PortfolioNotFoundException.class)
     public ResponseEntity<ErrorResponse> handlePortfolioNotFoundException(PortfolioNotFoundException ex) {
-        ErrorResponse errorResponse = new ErrorResponse("Portfolio Not Found", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        return error(HttpStatus.NOT_FOUND, "PORTFOLIO_NOT_FOUND", "Portfolio not found.", ex.getMessage());
     }
 
     @ExceptionHandler(AssetMovementNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleAssetMovementNotFoundException(AssetMovementNotFoundException ex) {
-        ErrorResponse errorResponse = new ErrorResponse("Asset Movement Not Found", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        return error(HttpStatus.NOT_FOUND, "ASSET_MOVEMENT_NOT_FOUND", "Asset movement not found.", ex.getMessage());
     }
 
     @ExceptionHandler(PortfolioMismatchException.class)
     public ResponseEntity<ErrorResponse> handlePortfolioMismatchException(PortfolioMismatchException ex) {
-        ErrorResponse errorResponse = new ErrorResponse("Portfolio Mismatch", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        return error(HttpStatus.BAD_REQUEST, "PORTFOLIO_MISMATCH", "Portfolio mismatch.", ex.getMessage());
     }
 
     @ExceptionHandler(AssetMovementImportException.class)
     public ResponseEntity<ErrorResponse> handleAssetMovementImportException(AssetMovementImportException ex) {
-        ErrorResponse errorResponse = new ErrorResponse("Import Error", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        return error(HttpStatus.BAD_REQUEST, "ASSET_MOVEMENT_IMPORT_FAILED", "Asset movement import failed.", ex.getMessage());
     }
 
     @ExceptionHandler(TickerNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleTickerNotFoundException(TickerNotFoundException ex) {
-        ErrorResponse errorResponse = new ErrorResponse("Ticker Not Found", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        return error(HttpStatus.NOT_FOUND, "TICKER_NOT_FOUND", "Ticker not found.", ex.getMessage());
     }
 
     @ExceptionHandler(InvalidTickerException.class)
     public ResponseEntity<ErrorResponse> handleInvalidTickerException(InvalidTickerException ex) {
-        ErrorResponse errorResponse = new ErrorResponse("Invalid Ticker", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        return error(HttpStatus.BAD_REQUEST, "INVALID_TICKER", "Ticker is invalid.", ex.getMessage());
     }
 
     @ExceptionHandler(InvalidAllocationException.class)
     public ResponseEntity<ErrorResponse> handleInvalidAllocationException(InvalidAllocationException ex) {
-        ErrorResponse errorResponse = new ErrorResponse("Invalid Allocation", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        return error(HttpStatus.BAD_REQUEST, "INVALID_ALLOCATION", "Allocation is invalid.", ex.getMessage());
     }
 
     @ExceptionHandler(InvalidPortfolioPositionException.class)
     public ResponseEntity<ErrorResponse> handleInvalidPortfolioPositionException(InvalidPortfolioPositionException ex) {
-        ErrorResponse errorResponse = new ErrorResponse("Invalid Portfolio Position", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
+        return error(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_PORTFOLIO_POSITION", "Portfolio position is invalid.", ex.getMessage());
     }
 
     @ExceptionHandler(InvalidPortfolioShareException.class)
     public ResponseEntity<ErrorResponse> handleInvalidPortfolioShareException(InvalidPortfolioShareException ex) {
-        ErrorResponse errorResponse = new ErrorResponse("Invalid Portfolio Share", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        return error(HttpStatus.BAD_REQUEST, "INVALID_PORTFOLIO_SHARE", "Portfolio share is invalid.", ex.getMessage());
     }
 
     @ExceptionHandler(MarketDataUnavailableException.class)
     public ResponseEntity<ErrorResponse> handleMarketDataUnavailableException(MarketDataUnavailableException ex) {
-        ErrorResponse errorResponse = new ErrorResponse("Market Data Unavailable", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
+        return error(HttpStatus.SERVICE_UNAVAILABLE, "MARKET_DATA_UNAVAILABLE", "Market data is unavailable.", ex.getMessage());
     }
 
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
+        Map<String, String> errors = new LinkedHashMap<>();
 
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
@@ -97,38 +86,39 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        ErrorResponse errorResponse = new ErrorResponse("Validation failed", errors);
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        return error(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Request validation failed.", errors);
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAuthorizationDeniedException(AuthorizationDeniedException ex) {
-        ErrorResponse errorResponse = new ErrorResponse("Unauthorized", ex.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+        return error(HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied.", ex.getMessage());
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException ex) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                "Resource Not Found",
-                "Resource not found at path: " + ex.getResourcePath());
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "Resource not found.", Map.of("path", ex.getResourcePath()));
     }
 
     @ExceptionHandler(JwtException.class)
     public ResponseEntity<ErrorResponse> handleJwtException(JwtException ex) {
-        ErrorResponse errorResponse = new ErrorResponse("Unauthorized", "Invalid token.");
-        if (ex instanceof io.jsonwebtoken.ExpiredJwtException) {
-            errorResponse.setDetails("Token has expired.");
-        }
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+        String code = ex instanceof io.jsonwebtoken.ExpiredJwtException ? "TOKEN_EXPIRED" : "INVALID_TOKEN";
+        String detail = ex instanceof io.jsonwebtoken.ExpiredJwtException ? "Token has expired." : "Invalid token.";
+        return error(HttpStatus.UNAUTHORIZED, code, "Authentication failed.", detail);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         log.error("An unexpected error occurred", ex);
-        ErrorResponse errorResponse = new ErrorResponse("Internal Server Error", "An unexpected error occurred.");
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "An unexpected error occurred.", null);
+    }
+
+    private ResponseEntity<ErrorResponse> error(HttpStatus status, String code, String message, Object detail) {
+        Map<String, Object> details = new LinkedHashMap<>();
+        if (detail instanceof Map<?, ?> values) {
+            values.forEach((key, value) -> details.put(String.valueOf(key), value));
+        } else if (detail != null) {
+            details.put("reason", detail);
+        }
+        return ResponseEntity.status(status).body(new ErrorResponse(Instant.now(), status.value(), code, message, details));
     }
 }

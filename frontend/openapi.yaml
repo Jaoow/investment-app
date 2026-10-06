@@ -144,6 +144,72 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PortfolioSummary'
+  /v1/portfolio/{portfolioId}/classes:
+    parameters:
+      - $ref: '#/components/parameters/PortfolioId'
+    get:
+      operationId: getPortfolioClasses
+      responses:
+        '200':
+          description: Server-computed portfolio allocation by asset class
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PortfolioClass' }
+        '503':
+          $ref: '#/components/responses/Error'
+  /v1/portfolio/{portfolioId}/overview:
+    parameters:
+      - $ref: '#/components/parameters/PortfolioId'
+    get:
+      operationId: getPortfolioOverview
+      responses:
+        '200':
+          description: Portfolio totals and positions aggregated by the API
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PortfolioOverview' }
+        '503':
+          $ref: '#/components/responses/Error'
+  /v1/portfolio/{portfolioId}/classes/{classId}:
+    parameters:
+      - $ref: '#/components/parameters/PortfolioId'
+      - name: classId
+        in: path
+        required: true
+        schema: { type: string, enum: [equities, realEstate, etfs, bdrs, fixedIncome, treasury] }
+    get:
+      operationId: getPortfolioClassDetail
+      responses:
+        '200':
+          description: Server-computed summary and positions for an asset class
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PortfolioClassDetail' }
+        '404':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+  /v1/portfolio/{portfolioId}/assets/{ticker}:
+    parameters:
+      - $ref: '#/components/parameters/PortfolioId'
+      - name: ticker
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: getPortfolioAssetDetail
+      responses:
+        '200':
+          description: Consolidated asset position with API-computed allocations and profitability
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PortfolioAssetDetail' }
+        '404':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
   /v1/portfolio/{portfolioId}/suggestions:
     parameters:
       - $ref: '#/components/parameters/PortfolioId'
@@ -162,6 +228,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Suggestion'
+        '400':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+  /v1/portfolio/{portfolioId}/recommendations/calculate:
+    parameters:
+      - $ref: '#/components/parameters/PortfolioId'
+    post:
+      operationId: calculateRecommendations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationCalculationRequest'
+      responses:
+        '200':
+          description: Portfolio-scoped contribution simulation; does not create movements or orders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationCalculation'
         '400':
           $ref: '#/components/responses/Error'
         '403':
@@ -283,7 +373,7 @@ paths:
               properties:
                 symbol: { type: string, minLength: 2, maxLength: 12 }
                 category:
-                  { type: string, enum: [EQUITIES, REAL_ESTATE_FUNDS, BDRS] }
+                  { type: string, enum: [EQUITIES, REAL_ESTATE_FUNDS, ETFS, BDRS, FIXED_INCOME, TREASURY] }
       responses:
         '200':
           description: Registered or existing ticker; never changes existing category
@@ -322,6 +412,21 @@ paths:
           description: Allocations saved
         '400':
           $ref: '#/components/responses/Error'
+    put:
+      operationId: replaceAllocations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CategoryAllocation'
+      responses:
+        '200':
+          description: Allocations replaced
+        '400':
+          $ref: '#/components/responses/Error'
   /v1/portfolio/{portfolioId}/rebalance:
     parameters:
       - $ref: '#/components/parameters/PortfolioId'
@@ -356,7 +461,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [EQUITIES, REAL_ESTATE_FUNDS, BDRS]
+            enum: [EQUITIES, REAL_ESTATE_FUNDS, ETFS, BDRS, FIXED_INCOME, TREASURY]
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Size'
       responses:
@@ -668,12 +773,100 @@ components:
         currentValue: { $ref: '#/components/schemas/Decimal' }
         profitOrLoss: { $ref: '#/components/schemas/Decimal' }
         percentageChange: { $ref: '#/components/schemas/Decimal' }
+    PortfolioClass:
+      type: object
+      required: [id, name, currentPercentage, targetPercentage, currentValue, profitability, assetsCount]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        currentPercentage: { $ref: '#/components/schemas/Decimal' }
+        targetPercentage: { $ref: '#/components/schemas/Decimal' }
+        currentValue: { $ref: '#/components/schemas/Decimal' }
+        profitability: { $ref: '#/components/schemas/Decimal' }
+        assetsCount: { type: integer }
+        investedAmount: { $ref: '#/components/schemas/Decimal' }
+        profitAmount: { $ref: '#/components/schemas/Decimal' }
+    PortfolioClassDetail:
+      type: object
+      properties:
+        summary: { $ref: '#/components/schemas/PortfolioClass' }
+        assets:
+          type: array
+          items: { $ref: '#/components/schemas/AssetSummary' }
+    PortfolioOverview:
+      type: object
+      required: [portfolioId, patrimony, investedAmount, profitAmount, profitPercentage, assetsCount, assets]
+      properties:
+        portfolioId: { type: integer, format: int64 }
+        patrimony: { $ref: '#/components/schemas/Decimal' }
+        investedAmount: { $ref: '#/components/schemas/Decimal' }
+        profitAmount: { $ref: '#/components/schemas/Decimal' }
+        profitPercentage: { $ref: '#/components/schemas/Decimal' }
+        assetsCount: { type: integer }
+        assets:
+          type: array
+          items: { $ref: '#/components/schemas/AssetSummary' }
+    PortfolioAssetDetail:
+      type: object
+      properties:
+        ticker: { type: string }
+        name: { type: string }
+        sector: { type: string }
+        quantity: { $ref: '#/components/schemas/Decimal' }
+        averagePrice: { $ref: '#/components/schemas/Decimal' }
+        currentPrice: { $ref: '#/components/schemas/Decimal' }
+        investedAmount: { $ref: '#/components/schemas/Decimal' }
+        currentAmount: { $ref: '#/components/schemas/Decimal' }
+        profitAmount: { $ref: '#/components/schemas/Decimal' }
+        profitPercentage: { $ref: '#/components/schemas/Decimal' }
+        allocationInClass: { $ref: '#/components/schemas/Decimal' }
+        targetAllocationInClass: { $ref: '#/components/schemas/Decimal' }
+        allocationInPortfolio: { $ref: '#/components/schemas/Decimal' }
+        targetAllocationInPortfolio: { $ref: '#/components/schemas/Decimal' }
+        dailyVariation: { $ref: '#/components/schemas/Decimal' }
     SuggestionRequest:
       type: object
       required: [amount, currency]
       properties:
         amount: { $ref: '#/components/schemas/Decimal' }
         currency: { type: string, pattern: '^[A-Z]{3}$', default: BRL }
+    RecommendationCalculationRequest:
+      type: object
+      required: [investmentAmount]
+      properties:
+        investmentAmount: { allOf: [{ $ref: '#/components/schemas/Decimal' }], exclusiveMinimum: 0 }
+    RecommendationCalculation:
+      type: object
+      properties:
+        investmentAmount: { $ref: '#/components/schemas/Decimal' }
+        allocatedAmount: { $ref: '#/components/schemas/Decimal' }
+        remainingAmount: { $ref: '#/components/schemas/Decimal' }
+        recommendations:
+          type: array
+          items: { $ref: '#/components/schemas/Recommendation' }
+        excludedAssets:
+          type: array
+          items: { $ref: '#/components/schemas/ExcludedAsset' }
+        disclaimer: { type: string }
+    Recommendation:
+      type: object
+      properties:
+        ticker: { type: string }
+        assetName: { type: string }
+        score: { $ref: '#/components/schemas/Decimal' }
+        recommendationLevel: { type: string, enum: [STRONG_BUY, MODERATE_BUY, NEUTRAL, LOW_PRIORITY] }
+        suggestedAmount: { $ref: '#/components/schemas/Decimal' }
+        suggestedQuantity: { $ref: '#/components/schemas/Decimal' }
+        currentAllocation: { $ref: '#/components/schemas/Decimal' }
+        targetAllocation: { $ref: '#/components/schemas/Decimal' }
+        currentPrice: { $ref: '#/components/schemas/Decimal' }
+        ceilingPrice: { $ref: '#/components/schemas/Decimal' }
+        dailyVariation: { $ref: '#/components/schemas/Decimal' }
+        explanation:
+          type: array
+          items: { type: string }
+        quoteProvider: { type: string }
+        quoteObservedAt: { type: string, format: date-time }
     Suggestion:
       type: object
       properties:
@@ -692,6 +885,7 @@ components:
       type: object
       properties:
         tickerSymbol: { type: string }
+        assetName: { type: string }
         quantity: { $ref: '#/components/schemas/Decimal' }
         unitPrice: { $ref: '#/components/schemas/Decimal' }
         estimatedValue: { $ref: '#/components/schemas/Decimal' }
@@ -763,7 +957,7 @@ components:
         ]
       properties:
         tickerSymbol: { type: string }
-        category: { type: string, enum: [EQUITIES, REAL_ESTATE_FUNDS, BDRS] }
+        category: { type: string, enum: [EQUITIES, REAL_ESTATE_FUNDS, ETFS, BDRS, FIXED_INCOME, TREASURY] }
         categoryTargetPercentage: { $ref: '#/components/schemas/Decimal' }
         assetTargetPercentage: { $ref: '#/components/schemas/Decimal' }
         allocationPercentage: { $ref: '#/components/schemas/Decimal' }
@@ -774,7 +968,7 @@ components:
     CategoryAllocation:
       type: object
       properties:
-        category: { type: string, enum: [EQUITIES, REAL_ESTATE_FUNDS, BDRS] }
+        category: { type: string, enum: [EQUITIES, REAL_ESTATE_FUNDS, ETFS, BDRS, FIXED_INCOME, TREASURY] }
         categoryTargetPercentage: { $ref: '#/components/schemas/Decimal' }
         assetAllocations:
           type: array
@@ -902,6 +1096,12 @@ components:
               quoteObservedAt: { type: string, format: date-time }
     Error:
       type: object
+      required: [timestamp, status, code, message, details]
       properties:
+        timestamp: { type: string, format: date-time }
+        status: { type: integer }
+        code: { type: string }
         message: { type: string }
-        details: {}
+        details:
+          type: object
+          additionalProperties: true

@@ -94,6 +94,7 @@ class RebalanceServiceTests {
     private MarketQuote quote(String ticker, String price, Instant now) {
         return new MarketQuote(
                 ticker,
+            ticker,
                 new BigDecimal(price),
                 "BRL",
                 BigDecimal.ZERO,

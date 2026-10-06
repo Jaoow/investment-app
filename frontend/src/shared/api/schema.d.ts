@@ -104,6 +104,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/portfolio/{portfolioId}/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: components["parameters"]["PortfolioId"];
+            };
+            cookie?: never;
+        };
+        get: operations["getPortfolioClasses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/portfolio/{portfolioId}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: components["parameters"]["PortfolioId"];
+            };
+            cookie?: never;
+        };
+        get: operations["getPortfolioOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/portfolio/{portfolioId}/classes/{classId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: components["parameters"]["PortfolioId"];
+                classId: "equities" | "realEstate" | "etfs" | "bdrs" | "fixedIncome" | "treasury";
+            };
+            cookie?: never;
+        };
+        get: operations["getPortfolioClassDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/portfolio/{portfolioId}/assets/{ticker}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: components["parameters"]["PortfolioId"];
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        get: operations["getPortfolioAssetDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/portfolio/{portfolioId}/suggestions": {
         parameters: {
             query?: never;
@@ -116,6 +190,24 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["suggestContribution"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/portfolio/{portfolioId}/recommendations/calculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: components["parameters"]["PortfolioId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["calculateRecommendations"];
         delete?: never;
         options?: never;
         head?: never;
@@ -217,7 +309,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getAllocations"];
-        put?: never;
+        put: operations["replaceAllocations"];
         post: operations["setAllocations"];
         delete?: never;
         options?: never;
@@ -447,10 +539,81 @@ export interface components {
             profitOrLoss?: components["schemas"]["Decimal"];
             percentageChange?: components["schemas"]["Decimal"];
         };
+        PortfolioClass: {
+            id: string;
+            name: string;
+            currentPercentage: components["schemas"]["Decimal"];
+            targetPercentage: components["schemas"]["Decimal"];
+            currentValue: components["schemas"]["Decimal"];
+            profitability: components["schemas"]["Decimal"];
+            assetsCount: number;
+            investedAmount?: components["schemas"]["Decimal"];
+            profitAmount?: components["schemas"]["Decimal"];
+        };
+        PortfolioClassDetail: {
+            summary?: components["schemas"]["PortfolioClass"];
+            assets?: components["schemas"]["AssetSummary"][];
+        };
+        PortfolioOverview: {
+            /** Format: int64 */
+            portfolioId: number;
+            patrimony: components["schemas"]["Decimal"];
+            investedAmount: components["schemas"]["Decimal"];
+            profitAmount: components["schemas"]["Decimal"];
+            profitPercentage: components["schemas"]["Decimal"];
+            assetsCount: number;
+            assets: components["schemas"]["AssetSummary"][];
+        };
+        PortfolioAssetDetail: {
+            ticker?: string;
+            name?: string;
+            sector?: string;
+            quantity?: components["schemas"]["Decimal"];
+            averagePrice?: components["schemas"]["Decimal"];
+            currentPrice?: components["schemas"]["Decimal"];
+            investedAmount?: components["schemas"]["Decimal"];
+            currentAmount?: components["schemas"]["Decimal"];
+            profitAmount?: components["schemas"]["Decimal"];
+            profitPercentage?: components["schemas"]["Decimal"];
+            allocationInClass?: components["schemas"]["Decimal"];
+            targetAllocationInClass?: components["schemas"]["Decimal"];
+            allocationInPortfolio?: components["schemas"]["Decimal"];
+            targetAllocationInPortfolio?: components["schemas"]["Decimal"];
+            dailyVariation?: components["schemas"]["Decimal"];
+        };
         SuggestionRequest: {
             amount: components["schemas"]["Decimal"];
             /** @default BRL */
             currency: string;
+        };
+        RecommendationCalculationRequest: {
+            investmentAmount: components["schemas"]["Decimal"];
+        };
+        RecommendationCalculation: {
+            investmentAmount?: components["schemas"]["Decimal"];
+            allocatedAmount?: components["schemas"]["Decimal"];
+            remainingAmount?: components["schemas"]["Decimal"];
+            recommendations?: components["schemas"]["Recommendation"][];
+            excludedAssets?: components["schemas"]["ExcludedAsset"][];
+            disclaimer?: string;
+        };
+        Recommendation: {
+            ticker?: string;
+            assetName?: string;
+            score?: components["schemas"]["Decimal"];
+            /** @enum {string} */
+            recommendationLevel?: "STRONG_BUY" | "MODERATE_BUY" | "NEUTRAL" | "LOW_PRIORITY";
+            suggestedAmount?: components["schemas"]["Decimal"];
+            suggestedQuantity?: components["schemas"]["Decimal"];
+            currentAllocation?: components["schemas"]["Decimal"];
+            targetAllocation?: components["schemas"]["Decimal"];
+            currentPrice?: components["schemas"]["Decimal"];
+            ceilingPrice?: components["schemas"]["Decimal"];
+            dailyVariation?: components["schemas"]["Decimal"];
+            explanation?: string[];
+            quoteProvider?: string;
+            /** Format: date-time */
+            quoteObservedAt?: string;
         };
         Suggestion: {
             requestedAmount?: components["schemas"]["Decimal"];
@@ -463,6 +626,7 @@ export interface components {
         };
         SuggestionItem: {
             tickerSymbol?: string;
+            assetName?: string;
             quantity?: components["schemas"]["Decimal"];
             unitPrice?: components["schemas"]["Decimal"];
             estimatedValue?: components["schemas"]["Decimal"];
@@ -511,7 +675,7 @@ export interface components {
         AssetSetting: {
             tickerSymbol: string;
             /** @enum {string} */
-            category?: "EQUITIES" | "REAL_ESTATE_FUNDS" | "BDRS";
+            category?: "EQUITIES" | "REAL_ESTATE_FUNDS" | "ETFS" | "BDRS" | "FIXED_INCOME" | "TREASURY";
             categoryTargetPercentage: components["schemas"]["Decimal"];
             assetTargetPercentage: components["schemas"]["Decimal"];
             allocationPercentage: components["schemas"]["Decimal"];
@@ -519,7 +683,7 @@ export interface components {
         };
         CategoryAllocation: {
             /** @enum {string} */
-            category?: "EQUITIES" | "REAL_ESTATE_FUNDS" | "BDRS";
+            category?: "EQUITIES" | "REAL_ESTATE_FUNDS" | "ETFS" | "BDRS" | "FIXED_INCOME" | "TREASURY";
             categoryTargetPercentage?: components["schemas"]["Decimal"];
             assetAllocations?: {
                 tickerSymbol?: string;
@@ -634,8 +798,14 @@ export interface components {
             }[];
         };
         Error: {
-            message?: string;
-            details?: unknown;
+            /** Format: date-time */
+            timestamp: string;
+            status: number;
+            code: string;
+            message: string;
+            details: {
+                [key: string]: unknown;
+            };
         };
     };
     responses: {
@@ -872,6 +1042,102 @@ export interface operations {
             };
         };
     };
+    getPortfolioClasses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: components["parameters"]["PortfolioId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-computed portfolio allocation by asset class */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioClass"][];
+                };
+            };
+            503: components["responses"]["Error"];
+        };
+    };
+    getPortfolioOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: components["parameters"]["PortfolioId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Portfolio totals and positions aggregated by the API */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioOverview"];
+                };
+            };
+            503: components["responses"]["Error"];
+        };
+    };
+    getPortfolioClassDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: components["parameters"]["PortfolioId"];
+                classId: "equities" | "realEstate" | "etfs" | "bdrs" | "fixedIncome" | "treasury";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-computed summary and positions for an asset class */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioClassDetail"];
+                };
+            };
+            404: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+        };
+    };
+    getPortfolioAssetDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: components["parameters"]["PortfolioId"];
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Consolidated asset position with API-computed allocations and profitability */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioAssetDetail"];
+                };
+            };
+            404: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+        };
+    };
     suggestContribution: {
         parameters: {
             query?: never;
@@ -894,6 +1160,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Suggestion"];
+                };
+            };
+            400: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+        };
+    };
+    calculateRecommendations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: components["parameters"]["PortfolioId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecommendationCalculationRequest"];
+            };
+        };
+        responses: {
+            /** @description Portfolio-scoped contribution simulation; does not create movements or orders */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecommendationCalculation"];
                 };
             };
             400: components["responses"]["Error"];
@@ -1081,7 +1376,7 @@ export interface operations {
                 "application/json": {
                     symbol: string;
                     /** @enum {string} */
-                    category: "EQUITIES" | "REAL_ESTATE_FUNDS" | "BDRS";
+                    category: "EQUITIES" | "REAL_ESTATE_FUNDS" | "ETFS" | "BDRS" | "FIXED_INCOME" | "TREASURY";
                 };
             };
         };
@@ -1118,6 +1413,31 @@ export interface operations {
                     "application/json": components["schemas"]["CategoryAllocation"][];
                 };
             };
+        };
+    };
+    replaceAllocations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolioId: components["parameters"]["PortfolioId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryAllocation"][];
+            };
+        };
+        responses: {
+            /** @description Allocations replaced */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Error"];
         };
     };
     setAllocations: {
@@ -1173,7 +1493,7 @@ export interface operations {
                 symbol?: string;
                 sector?: string;
                 subSector?: string;
-                category?: "EQUITIES" | "REAL_ESTATE_FUNDS" | "BDRS";
+                category?: "EQUITIES" | "REAL_ESTATE_FUNDS" | "ETFS" | "BDRS" | "FIXED_INCOME" | "TREASURY";
                 page?: components["parameters"]["Page"];
                 size?: components["parameters"]["Size"];
             };

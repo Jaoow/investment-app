@@ -249,6 +249,7 @@ public class SuggestionService {
         PurchaseCandidate candidate = allocation.candidate();
         SuggestionItemResponse item = new SuggestionItemResponse();
         item.setTickerSymbol(candidate.tickerSymbol());
+        item.setAssetName(quote.assetName());
         item.setQuantity(allocation.quantity());
         item.setUnitPrice(candidate.price());
         item.setEstimatedValue(allocation.estimatedValue());

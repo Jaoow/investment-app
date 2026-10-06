@@ -28,6 +28,12 @@ public class AllocationController {
         allocationService.setCategoryAllocations(portfolioId, categoryAllocations);
     }
 
+    @PutMapping
+    public void replaceTargetAllocations(@PathVariable Long portfolioId,
+                                         @RequestBody @Valid @NotEmpty List<@NotNull @Valid CategoryAllocationRequest> categoryAllocations) {
+        allocationService.setCategoryAllocations(portfolioId, categoryAllocations);
+    }
+
     @GetMapping
     public List<CategoryAllocationResponse> getAllocationsWithZeroValues(@PathVariable Long portfolioId) {
         return allocationService.getAllocationsWithZeroValues(portfolioId);
