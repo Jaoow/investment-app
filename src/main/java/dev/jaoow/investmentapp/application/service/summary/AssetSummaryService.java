@@ -1,8 +1,8 @@
 package dev.jaoow.investmentapp.application.service.summary;
 
 import dev.jaoow.investmentapp.application.dto.response.BrapiQuoteDto;
+import dev.jaoow.investmentapp.application.dto.response.BrapiTickerResolveResultDto;
 import dev.jaoow.investmentapp.application.dto.response.summary.AssetSummaryResponse;
-import dev.jaoow.investmentapp.application.exception.MarketDataUnavailableException;
 import dev.jaoow.investmentapp.application.model.AssetConsolidation;
 import dev.jaoow.investmentapp.application.model.BrapiFields;
 import dev.jaoow.investmentapp.application.model.TickerFields;
@@ -38,13 +38,36 @@ public class AssetSummaryService {
 
             String tickerSymbol = consolidation.getTickerSymbol();
             Optional<BrapiQuoteDto> currentQuote = brapiClient.getQuote(tickerSymbol, null, null, null, null);
-                BigDecimal currentPrice = currentQuote.map(BrapiQuoteDto::getRegularMarketPrice)
+            BigDecimal currentPrice = currentQuote.map(BrapiQuoteDto::getRegularMarketPrice)
                     .filter(price -> price != null && price.compareTo(BigDecimal.ZERO) > 0)
-                    .orElseThrow(() -> new MarketDataUnavailableException("No valid quote was returned for " + tickerSymbol + "."));
+                    .orElse(null);
 
-                BigDecimal currentAssetValue = totalQuantity.multiply(currentPrice);
+            if (currentPrice == null) {
+                try {
+                    List<BrapiTickerResolveResultDto> resolveResults = brapiClient
+                            .resolveTickers(List.of(tickerSymbol));
+                    if (!resolveResults.isEmpty()) {
+                        BrapiTickerResolveResultDto result = resolveResults.getFirst();
+                        if (result.isChanged() && result.getSymbol() != null) {
+                            String newTicker = result.getSymbol();
+                            currentQuote = brapiClient.getQuote(newTicker, null, null, null, null);
+                            currentPrice = currentQuote.map(BrapiQuoteDto::getRegularMarketPrice)
+                                    .filter(price -> price != null && price.compareTo(BigDecimal.ZERO) > 0)
+                                    .orElse(null);
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+            }
 
-            AssetSummaryResponse assetSummary = createAssetSummary(tickerSymbol, currentAssetValue, investedAmount, totalQuantity);
+            if (currentPrice == null) {
+                currentPrice = BigDecimal.ZERO;
+            }
+
+            BigDecimal currentAssetValue = totalQuantity.multiply(currentPrice);
+
+            AssetSummaryResponse assetSummary = createAssetSummary(tickerSymbol, currentAssetValue, investedAmount,
+                    totalQuantity);
             Optional<Ticker> foundTicker = tickerRepository.findById(tickerSymbol);
 
             mapQuoteAndTickerInfo(foundTicker, currentQuote, assetSummary);
@@ -56,7 +79,7 @@ public class AssetSummaryService {
     }
 
     private AssetSummaryResponse createAssetSummary(String tickerSymbol, BigDecimal currentAssetValue,
-                                                    BigDecimal investedAmount, BigDecimal totalQuantity) {
+            BigDecimal investedAmount, BigDecimal totalQuantity) {
         BigDecimal profitOrLoss = currentAssetValue.subtract(investedAmount);
         BigDecimal percentageChange = calculatePercentageChange(investedAmount, profitOrLoss);
         BigDecimal averagePrice = calculateAveragePrice(investedAmount, totalQuantity);
@@ -72,7 +95,8 @@ public class AssetSummaryService {
                 .build();
     }
 
-    private void mapQuoteAndTickerInfo(Optional<Ticker> foundTicker, Optional<BrapiQuoteDto> currentQuote, AssetSummaryResponse assetSummary) {
+    private void mapQuoteAndTickerInfo(Optional<Ticker> foundTicker, Optional<BrapiQuoteDto> currentQuote,
+            AssetSummaryResponse assetSummary) {
         currentQuote.ifPresent(quote -> {
             BrapiFields brapiFields = modelMapper.map(quote, BrapiFields.class);
             assetSummary.setBrapiFields(brapiFields);
@@ -84,14 +108,13 @@ public class AssetSummaryService {
         });
     }
 
-
     private BigDecimal calculatePercentageChange(BigDecimal investedAmount, BigDecimal profitOrLoss) {
-        return investedAmount.equals(BigDecimal.ZERO) ? BigDecimal.ZERO :
-                profitOrLoss.divide(investedAmount, 2, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
+        return investedAmount.equals(BigDecimal.ZERO) ? BigDecimal.ZERO
+                : profitOrLoss.divide(investedAmount, 2, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
     }
 
     private BigDecimal calculateAveragePrice(BigDecimal investedAmount, BigDecimal totalQuantity) {
-        return totalQuantity.equals(BigDecimal.ZERO) ? BigDecimal.ZERO :
-                investedAmount.divide(totalQuantity, 2, RoundingMode.HALF_UP);
+        return totalQuantity.equals(BigDecimal.ZERO) ? BigDecimal.ZERO
+                : investedAmount.divide(totalQuantity, 2, RoundingMode.HALF_UP);
     }
 }

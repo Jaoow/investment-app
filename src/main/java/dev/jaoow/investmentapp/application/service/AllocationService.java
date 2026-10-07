@@ -162,7 +162,7 @@ public class AllocationService {
             }
 
             if (active && !tickers.isEmpty() && assetTotal.compareTo(BigDecimal.valueOf(100)) != 0) {
-                throw new InvalidAllocationException("Asset targets within a category must total 100%.");
+                throw new InvalidAllocationException("As metas dos ativos na classe " + request.getCategory() + " devem somar 100%. (Soma atual: " + assetTotal + "%)");
             }
         }
 

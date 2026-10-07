@@ -28,4 +28,7 @@ public class AssetMovement {
 
     @Enumerated(EnumType.STRING)
     private MovementType type;
+    
+    @Column(name = "external_reference", unique = true)
+    private String externalReference;
 }

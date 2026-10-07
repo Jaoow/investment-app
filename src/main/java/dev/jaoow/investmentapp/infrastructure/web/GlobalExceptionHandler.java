@@ -47,6 +47,11 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, "ASSET_MOVEMENT_IMPORT_FAILED", "Asset movement import failed.", ex.getMessage());
     }
 
+    @ExceptionHandler(dev.jaoow.investmentapp.application.exception.B3ImportException.class)
+    public ResponseEntity<ErrorResponse> handleB3ImportException(dev.jaoow.investmentapp.application.exception.B3ImportException ex) {
+        return error(HttpStatus.BAD_REQUEST, "B3_IMPORT_FAILED", "B3 position import failed.", ex.getMessage());
+    }
+
     @ExceptionHandler(TickerNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleTickerNotFoundException(TickerNotFoundException ex) {
         return error(HttpStatus.NOT_FOUND, "TICKER_NOT_FOUND", "Ticker not found.", ex.getMessage());
@@ -74,6 +79,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MarketDataUnavailableException.class)
     public ResponseEntity<ErrorResponse> handleMarketDataUnavailableException(MarketDataUnavailableException ex) {
+        log.error("Market data unavailable: {}", ex.getMessage(), ex);
         return error(HttpStatus.SERVICE_UNAVAILABLE, "MARKET_DATA_UNAVAILABLE", "Market data is unavailable.", ex.getMessage());
     }
 

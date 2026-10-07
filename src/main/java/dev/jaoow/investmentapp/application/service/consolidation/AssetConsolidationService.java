@@ -18,19 +18,35 @@ public class AssetConsolidationService {
     public List<AssetConsolidation> processAssetMovements(Portfolio portfolio) {
         Map<String, AssetConsolidation> assetConsolidationMap = new HashMap<>();
 
-        for (AssetMovement movement : portfolio.getAssetMovements()) {
+        // Sort movements by date and ID to ensure chronological processing
+        List<AssetMovement> sortedMovements = portfolio.getAssetMovements().stream()
+                .sorted((a, b) -> {
+                    if (a.getDate() == null || b.getDate() == null) return 0;
+                    int dateCompare = a.getDate().compareTo(b.getDate());
+                    if (dateCompare != 0) return dateCompare;
+                    if (a.getId() == null || b.getId() == null) return 0;
+                    return a.getId().compareTo(b.getId());
+                })
+                .toList();
+
+        for (AssetMovement movement : sortedMovements) {
             String tickerSymbol = movement.getTickerSymbol();
 
             AssetConsolidation consolidation = assetConsolidationMap
                     .computeIfAbsent(tickerSymbol, AssetConsolidation::new);
 
-            BigDecimal movementTotal = movement.getQuantity().multiply(movement.getPrice());
-
             if (movement.getType() == MovementType.BUY) {
+                BigDecimal movementTotal = movement.getQuantity().multiply(movement.getPrice());
                 consolidation.addInvestment(movementTotal);
                 consolidation.addQuantity(movement.getQuantity());
             } else if (movement.getType() == MovementType.SELL) {
-                consolidation.subtractInvestment(movementTotal);
+                BigDecimal averagePrice = BigDecimal.ZERO;
+                if (consolidation.getTotalQuantity().compareTo(BigDecimal.ZERO) > 0) {
+                    averagePrice = consolidation.getInvestedAmount().divide(consolidation.getTotalQuantity(), 8, java.math.RoundingMode.HALF_UP);
+                }
+                
+                BigDecimal investedAmountToSubtract = movement.getQuantity().multiply(averagePrice);
+                consolidation.subtractInvestment(investedAmountToSubtract);
                 consolidation.subtractQuantity(movement.getQuantity());
             }
         }

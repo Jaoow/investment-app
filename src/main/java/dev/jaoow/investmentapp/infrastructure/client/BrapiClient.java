@@ -12,6 +12,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -20,6 +21,8 @@ import java.util.Optional;
 import java.time.Instant;
 import java.util.concurrent.Semaphore;
 import dev.jaoow.investmentapp.application.dto.response.BrapiTickerListResponse;
+import dev.jaoow.investmentapp.application.dto.response.BrapiTickerResolveResponseDto;
+import dev.jaoow.investmentapp.application.dto.response.BrapiTickerResolveResultDto;
 import java.util.concurrent.Semaphore;
 
 @Component
@@ -84,6 +87,10 @@ public class BrapiClient {
             throw new MarketDataUnavailableException("Interrupted while waiting for the market data provider.", ex);
         } catch (HttpClientErrorException.TooManyRequests ex) {
             throw new MarketDataUnavailableException("Market data provider rate limit reached. Retry after a short delay.", ex);
+        } catch (HttpClientErrorException.NotFound ex) {
+            return Optional.empty();
+        } catch (RestClientException ex) {
+            throw new MarketDataUnavailableException("Failed to communicate with market data provider.", ex);
         }
         if (response != null && response.getResults() != null && !response.getResults().isEmpty()) {
             BrapiQuoteDto quote = response.getResults().getFirst().getData();
@@ -138,6 +145,10 @@ public class BrapiClient {
             throw new MarketDataUnavailableException("Interrupted while waiting for the market data provider.", ex);
         } catch (HttpClientErrorException.TooManyRequests ex) {
             throw new MarketDataUnavailableException("Market data provider rate limit reached. Retry after a short delay.", ex);
+        } catch (HttpClientErrorException.NotFound ex) {
+            return Optional.empty();
+        } catch (RestClientException ex) {
+            throw new MarketDataUnavailableException("Failed to communicate with market data provider.", ex);
         }
 
         return Optional.ofNullable(response);
@@ -154,5 +165,47 @@ public class BrapiClient {
     private static class BrapiResult {
         private String symbol;
         private BrapiQuoteDto data;
+    }
+
+    public List<BrapiTickerResolveResultDto> resolveTickers(List<String> symbols) {
+        if (symbols == null || symbols.isEmpty()) {
+            return List.of();
+        }
+
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder
+                .fromHttpUrl("https://brapi.dev/api/v2/tickers/resolve")
+                .queryParam("symbols", String.join(",", symbols));
+
+        HttpHeaders headers = new HttpHeaders();
+        if (apiToken != null && !apiToken.isBlank()) {
+            headers.setBearerAuth(apiToken);
+        }
+
+        BrapiTickerResolveResponseDto response;
+        try {
+            quoteRequestPermit.acquire();
+            try {
+                response = restTemplate.exchange(
+                        uriBuilder.build().encode().toUri(),
+                        HttpMethod.GET,
+                        new HttpEntity<>(headers),
+                        BrapiTickerResolveResponseDto.class
+                ).getBody();
+            } finally {
+                quoteRequestPermit.release();
+            }
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new MarketDataUnavailableException("Interrupted while waiting for the market data provider.", ex);
+        } catch (HttpClientErrorException.TooManyRequests ex) {
+            throw new MarketDataUnavailableException("Market data provider rate limit reached. Retry after a short delay.", ex);
+        } catch (RestClientException ex) {
+            throw new MarketDataUnavailableException("Failed to resolve tickers with market data provider.", ex);
+        }
+
+        if (response != null && response.getResults() != null) {
+            return response.getResults();
+        }
+        return List.of();
     }
 }

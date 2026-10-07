@@ -19,6 +19,9 @@ public class Portfolio {
     @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AssetMovement> assetMovements = new LinkedList<>();
 
+    @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CategoryAllocation> categoryAllocations = new LinkedList<>();
+
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

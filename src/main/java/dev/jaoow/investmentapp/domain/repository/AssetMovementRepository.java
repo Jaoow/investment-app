@@ -12,4 +12,6 @@ public interface AssetMovementRepository extends JpaRepository<AssetMovement, Lo
 
     Page<AssetMovement> findAllByPortfolio(Portfolio portfolio, Pageable pageable);
 
+    java.util.List<AssetMovement> findAllByPortfolioAndExternalReferenceIn(Portfolio portfolio, java.util.Collection<String> externalReferences);
+
 }
