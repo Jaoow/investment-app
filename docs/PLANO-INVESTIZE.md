@@ -18,7 +18,7 @@
 |---|---|---|
 | Autorização por carteira | ✅ Implementada nos casos de uso existentes | Serviços de carteira, alocação, resumo, rebalanceamento e movimentos; testes de isolamento em `src/test/java/dev/jaoow/investmentapp/` |
 | Preço teto | ✅ Implementado por carteira/ativo, com histórico | `PortfolioAssetPreferenceController`, service e migrations V2/V4; GET/PUT/DELETE, histórico paginado e visão consolidada `/asset-settings` |
-| Cotações | 🟡 Provider brapi v2 com frescor explícito; ao vivo/B3 não garantido | `MarketQuoteProvider`, `BrapiMarketQuoteProvider`, `QuoteService`; cache, fonte e timestamps; termos e disponibilidade de produção ainda precisam ser validados |
+| Cotações | 🟡 Provider brapi v2 com frescor explícito; ao vivo/B3 não garantido | `MarketQuoteProvider`, `CotaTrackMarketQuoteProvider`, `QuoteService`; cache, fonte e timestamps; termos e disponibilidade de produção ainda precisam ser validados |
 | Balanceamento | ✅ Corrigido para posição líquida, cotação e unidades inteiras | `RebalanceService`; alvo efetivo categoria × ativo; percentuais `BigDecimal` |
 | Sugestão de aporte | ✅ Simulação implementada na API | `POST /v1/portfolio/{portfolioId}/suggestions`; pontuação, teto obrigatório, unidades inteiras, justificativas, exclusões e residual; não cria movimento nem executa ordem |
 | Pesos de recomendação | 🟡 Configuráveis globalmente | Properties independentes das metas; ainda não configuráveis por usuário/carteira |
