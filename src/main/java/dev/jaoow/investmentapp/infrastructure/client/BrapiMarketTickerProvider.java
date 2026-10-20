@@ -11,8 +11,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Component
+/**
+ * @deprecated Substituído por {@link CotaTrackMarketTickerProvider}.
+ *             Mantido apenas para referência. Não é um Spring Bean ativo.
+ */
+@Deprecated(forRemoval = false)
 public class BrapiMarketTickerProvider implements MarketTickerProvider {
+
 
     private final BrapiClient brapiClient;
 

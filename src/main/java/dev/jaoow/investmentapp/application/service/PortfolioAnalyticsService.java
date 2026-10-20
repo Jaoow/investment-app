@@ -9,6 +9,7 @@ import dev.jaoow.investmentapp.application.dto.response.summary.PortfolioSummary
 import dev.jaoow.investmentapp.application.exception.ResourceNotFoundException;
 import dev.jaoow.investmentapp.application.model.BrapiFields;
 import dev.jaoow.investmentapp.application.model.TickerFields;
+import dev.jaoow.cotatrack.api.classification.AssetClassifier;
 import dev.jaoow.investmentapp.application.service.summary.PortfolioSummaryService;
 import dev.jaoow.investmentapp.domain.model.AssetCategory;
 import org.springframework.stereotype.Service;
@@ -67,7 +68,13 @@ public class PortfolioAnalyticsService {
             .orElseThrow(() -> new ResourceNotFoundException("Asset position not found: " + ticker));
         TickerFields tickerFields = asset.getTickerFields();
         if (tickerFields == null || tickerFields.getCategory() == null) {
-            throw new ResourceNotFoundException("Asset category not found: " + ticker);
+            String catName = AssetClassifier.classify(ticker, null, null, null, null, null).getCategoryName();
+            if (tickerFields == null) {
+                tickerFields = new TickerFields();
+                tickerFields.setName(ticker);
+                asset.setTickerFields(tickerFields);
+            }
+            tickerFields.setCategory(catName);
         }
 
         AssetCategory category = resolveCategory(tickerFields.getCategory());
@@ -89,8 +96,12 @@ public class PortfolioAnalyticsService {
             .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal portfolioTarget = categoryTarget.multiply(targetInClass).divide(ONE_HUNDRED, 2, RoundingMode.HALF_UP);
         BrapiFields quote = asset.getBrapiFields();
-        String name = tickerFields.getName() != null ? tickerFields.getName() : 
-                      (quote == null ? ticker : firstAvailableName(quote, ticker));
+        String shortName = quote != null && quote.getShortName() != null ? quote.getShortName() : ticker;
+        String longName = quote != null && quote.getLongName() != null ? quote.getLongName() : 
+                          (tickerFields.getName() != null && !tickerFields.getName().equalsIgnoreCase(ticker) ? tickerFields.getName() : null);
+        String name = (longName != null && !longName.isBlank() && !longName.equalsIgnoreCase(ticker))
+                ? longName
+                : (tickerFields.getName() != null ? tickerFields.getName() : (quote == null ? ticker : firstAvailableName(quote, ticker)));
         String logoUrl = tickerFields.getLogoUrl() != null ? tickerFields.getLogoUrl() : 
                          (quote != null ? quote.getLogourl() : null);
         String sector = tickerFields.getSector() == null ? tickerFields.getSubSector() : tickerFields.getSector();
@@ -98,6 +109,8 @@ public class PortfolioAnalyticsService {
         return new PortfolioAssetDetailResponse(
             asset.getTickerSymbol(),
             name,
+            shortName,
+            longName,
             logoUrl,
             sector == null ? "Não informado" : sector,
             asset.getQuantity(),
@@ -143,13 +156,22 @@ public class PortfolioAnalyticsService {
     private Map<AssetCategory, List<AssetSummaryResponse>> assetsByCategory(List<AssetSummaryResponse> assets) {
         Map<AssetCategory, List<AssetSummaryResponse>> grouped = new EnumMap<>(AssetCategory.class);
         for (AssetSummaryResponse asset : assets) {
-            if (asset.getTickerFields() == null || asset.getTickerFields().getCategory() == null) continue;
-            try {
-                AssetCategory category = AssetCategory.valueOf(asset.getTickerFields().getCategory());
-                grouped.computeIfAbsent(category, ignored -> new ArrayList<>()).add(asset);
-            } catch (IllegalArgumentException ignored) {
-                // Unknown ticker metadata is omitted from class aggregates.
+            AssetCategory category = null;
+            if (asset.getTickerFields() != null && asset.getTickerFields().getCategory() != null) {
+                try {
+                    category = AssetCategory.valueOf(asset.getTickerFields().getCategory());
+                } catch (IllegalArgumentException ignored) {
+                }
             }
+            if (category == null) {
+                String catName = AssetClassifier.classify(asset.getTickerSymbol(), null, null, null, null, null).getCategoryName();
+                try {
+                    category = AssetCategory.valueOf(catName);
+                } catch (IllegalArgumentException | NullPointerException e) {
+                    category = AssetCategory.EQUITIES;
+                }
+            }
+            grouped.computeIfAbsent(category, ignored -> new ArrayList<>()).add(asset);
         }
         return grouped;
     }

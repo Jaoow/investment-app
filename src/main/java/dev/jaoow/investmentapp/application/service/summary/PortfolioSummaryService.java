@@ -35,7 +35,7 @@ public class PortfolioSummaryService {
     }
 
     @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#portfolioId, authentication)")
-    @Transactional(readOnly = true)
+    @Transactional
     public PortfolioSummaryResponse getPortfolioSummary(Long portfolioId, String category) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));

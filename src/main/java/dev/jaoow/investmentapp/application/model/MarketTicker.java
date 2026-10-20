@@ -15,5 +15,11 @@ public class MarketTicker {
     private String subType;
     private String sector;
     private String subSector;
+    private String industry;
+    private String category;
     private String logoUrl;
+
+    public MarketTicker(String symbol, String name, String longName, String type, String subType, String sector, String subSector, String logoUrl) {
+        this(symbol, name, longName, type, subType, sector, subSector, null, null, logoUrl);
+    }
 }

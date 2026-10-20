@@ -2,11 +2,13 @@ package dev.jaoow.investmentapp;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.FileInputStream;
 import java.util.*;
 
+@Disabled("Manual inspection test for local B3 negotiation excel file")
 public class ExcelReaderTest {
 
     @Test
