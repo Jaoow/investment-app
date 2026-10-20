@@ -34,7 +34,7 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth ->
-                        auth.requestMatchers("/auth/login", "/auth/register").permitAll()
+                        auth.requestMatchers("/auth/login", "/auth/register", "/auth/refresh").permitAll()
                                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                                 .requestMatchers("/public/portfolio-shares/**").permitAll()
                                 .anyRequest().authenticated())

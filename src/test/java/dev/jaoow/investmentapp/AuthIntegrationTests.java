@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.UUID;
+import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -42,6 +43,7 @@ class AuthIntegrationTests {
                         .content(objectMapper.writeValueAsString(new Credentials(null, email, "password123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
                 .andReturn();
 
         JsonNode loginResponse = objectMapper.readTree(loginResult.getResponse().getContentAsString());
@@ -50,6 +52,13 @@ class AuthIntegrationTests {
         mockMvc.perform(get("/auth/me").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(email));
+
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("refreshToken", loginResponse.get("refreshToken").asText()))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty());
     }
 
     private record Credentials(String name, String email, String password) {

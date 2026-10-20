@@ -10,15 +10,19 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 @Service
 public class AuthService {
 
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final UserService userService;
 
-    public AuthService(JwtService jwtService, AuthenticationManager authenticationManager) {
+    public AuthService(JwtService jwtService, AuthenticationManager authenticationManager, UserService userService) {
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
+        this.userService = userService;
     }
 
     public UserLoginResponse login(UserLoginRequest loginRequest) {
@@ -32,6 +36,20 @@ public class AuthService {
 
         UserDetails principal = (UserDetails) authentication.getPrincipal();
         String jwt = jwtService.generateToken(principal);
-        return new UserLoginResponse(jwt);
+        return new UserLoginResponse(jwt, jwtService.generateRefreshToken(principal));
+    }
+
+    public UserLoginResponse refresh(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank() || !jwtService.isRefreshToken(refreshToken)) {
+            throw new IllegalArgumentException("Invalid refresh token");
+        }
+
+        String email = jwtService.extractUsername(refreshToken);
+        UserDetails principal = userService.loadUserByUsername(email);
+        if (!jwtService.isRefreshTokenValid(refreshToken, principal)) {
+            throw new IllegalArgumentException("Invalid refresh token");
+        }
+
+        return new UserLoginResponse(jwtService.generateToken(principal), jwtService.generateRefreshToken(principal));
     }
 }

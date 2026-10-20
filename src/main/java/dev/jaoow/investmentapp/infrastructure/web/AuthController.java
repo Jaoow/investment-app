@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -26,6 +27,11 @@ public class AuthController {
     @PostMapping("/login")
     public UserLoginResponse login(@RequestBody UserLoginRequest userLoginRequest) {
         return authService.login(userLoginRequest);
+    }
+
+    @PostMapping("/refresh")
+    public UserLoginResponse refresh(@RequestBody Map<String, String> request) {
+        return authService.refresh(request.get("refreshToken"));
     }
 
     @GetMapping("/me")
