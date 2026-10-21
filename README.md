@@ -132,7 +132,7 @@ key in frontend environment variables.
 
 To create a share, send `expiresAt` as a future ISO-8601 instant and set `includeValues` only when the owner consents to disclosing quote/value fields, for example `{"expiresAt":"2030-01-01T00:00:00Z","includeValues":false}`.
 
-The suggestion endpoint returns whole units, estimated value, residual amount, score, reasons, quote source/time and excluded-asset reasons. It is a simulation only: it does not create movements, place orders, or include costs/taxes. It blocks the calculation if required market data is missing, lacks timestamps, or is older than the configured freshness limit; quotes above the portfolio-specific ceiling are never eligible.
+The suggestion endpoint returns whole units, estimated value, residual amount, score, reasons, quote source/time and excluded-asset reasons. It is a simulation only: it does not create movements, place orders, or include costs/taxes. It blocks the calculation if required market data is missing, lacks timestamps, or is older than the configured freshness limit (`investize.recommendations.max-quote-age`, 24 hours in production); quotes above the portfolio-specific ceiling are never eligible.
 
 Allocation percentages are decimal values with two fractional digits. Category targets must total 100%; asset targets within each non-zero category must total 100%. The effective asset target is the product of category and within-category percentages. Recommendation weights are configured separately from those targets in `application.properties`:
 

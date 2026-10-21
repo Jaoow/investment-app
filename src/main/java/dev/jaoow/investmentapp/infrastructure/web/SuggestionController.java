@@ -62,6 +62,8 @@ public class SuggestionController {
                 result.getRemainingAmount(),
                 recommendations,
                 result.getExcludedAssets(),
+                result.isConfigurationRequired(),
+                result.getConfigurationMessage(),
                 result.getDisclaimer());
     }
 

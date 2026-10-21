@@ -131,17 +131,11 @@ public class AllocationService {
         }
 
         Set<AssetCategory> categories = new HashSet<>();
-        BigDecimal categoryTotal = BigDecimal.ZERO;
-
         for (CategoryAllocationRequest request : requests) {
             if (!categories.add(request.getCategory())) {
                 throw new InvalidAllocationException("Each asset category can only be configured once.");
             }
 
-            categoryTotal = categoryTotal.add(request.getCategoryTargetPercentage());
-            boolean active = request.getCategoryTargetPercentage().compareTo(BigDecimal.ZERO) > 0;
-
-            BigDecimal assetTotal = BigDecimal.ZERO;
             Set<String> tickers = new HashSet<>();
             for (CategoryAllocationRequest.AssetAllocationRequest assetRequest :
                     request.getAssetAllocations() == null
@@ -158,16 +152,7 @@ public class AllocationService {
                     throw new InvalidAllocationException("Ticker " + ticker.getSymbol()
                             + " does not belong to category " + request.getCategory() + ".");
                 }
-                assetTotal = assetTotal.add(assetRequest.getTargetPercentage());
             }
-
-            if (active && !tickers.isEmpty() && assetTotal.compareTo(BigDecimal.valueOf(100)) != 0) {
-                throw new InvalidAllocationException("As metas dos ativos na classe " + request.getCategory() + " devem somar 100%. (Soma atual: " + assetTotal + "%)");
-            }
-        }
-
-        if (categoryTotal.compareTo(BigDecimal.valueOf(100)) != 0) {
-            throw new InvalidAllocationException("Category targets must total 100%.");
         }
     }
 }

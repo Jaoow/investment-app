@@ -7,4 +7,5 @@ public enum AssetCategory {
     BDRS,
     FIXED_INCOME,
     TREASURY,
+    OTHERS,
 }

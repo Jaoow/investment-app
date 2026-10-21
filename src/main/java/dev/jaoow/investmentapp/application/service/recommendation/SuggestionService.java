@@ -123,6 +123,11 @@ public class SuggestionService {
                 .map(allocation -> toResponse(allocation, quotes.get(allocation.candidate().tickerSymbol())))
                 .toList());
         response.setExcludedAssets(excluded);
+        boolean configurationRequired = targetPercentages.isEmpty();
+        response.setConfigurationRequired(configurationRequired);
+        response.setConfigurationMessage(configurationRequired
+                ? "Defina as metas de alocação dos ativos antes de simular um aporte."
+                : null);
         response.setDisclaimer("Sugestão automatizada baseada em regras e dados de mercado; não constitui consultoria financeira nem ordem de compra. Custos e impostos não estão incluídos.");
         return response;
     }
@@ -143,9 +148,16 @@ public class SuggestionService {
     }
 
     private Map<String, MarketQuote> loadFreshQuotes(Set<String> symbols, String currency) {
+        Map<String, MarketQuote> fetchedQuotes = marketQuoteProvider.getQuotes(List.copyOf(symbols));
+        if (fetchedQuotes == null || fetchedQuotes.isEmpty()) {
+            fetchedQuotes = symbols.stream()
+                    .collect(Collectors.toMap(symbol -> symbol, marketQuoteProvider::getQuote));
+        }
+
         Map<String, MarketQuote> quotes = new HashMap<>();
-        for (String symbol : symbols) {
-            MarketQuote quote = marketQuoteFreshness.requireFresh(marketQuoteProvider.getQuote(symbol));
+        for (Map.Entry<String, MarketQuote> entry : fetchedQuotes.entrySet()) {
+            String symbol = entry.getKey();
+            MarketQuote quote = marketQuoteFreshness.requireFresh(entry.getValue());
             if (!currency.equals(quote.currency())) {
                 throw new MarketDataUnavailableException("Quote currency for " + symbol
                         + " does not match requested currency " + currency + ".");

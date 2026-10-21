@@ -14,6 +14,10 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Implementação de {@link MarketQuoteProvider} que delega ao motor de cotações
@@ -39,32 +43,45 @@ public class CotaTrackMarketQuoteProvider implements MarketQuoteProvider {
 
     @Override
     public MarketQuote getQuote(String tickerSymbol) {
-        String mappedSymbol = SymbolMapper.mapSymbol(tickerSymbol);
+        return getQuotes(List.of(tickerSymbol)).get(tickerSymbol);
+    }
+
+    @Override
+    public Map<String, MarketQuote> getQuotes(List<String> tickerSymbols) {
+        if (tickerSymbols == null || tickerSymbols.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, String> requestedSymbols = tickerSymbols.stream()
+                .distinct()
+                .collect(Collectors.toMap(Function.identity(), SymbolMapper::mapSymbol));
 
         ProviderResult<java.util.Map<String, Quote>> result;
         try {
-            result = orchestrator.fetchQuotes(Collections.singletonList(mappedSymbol));
+            result = orchestrator.fetchQuotes(List.copyOf(requestedSymbols.values()));
         } catch (Exception ex) {
             throw new MarketDataUnavailableException(
-                    "CotaTrack orchestrator failed for " + tickerSymbol + ": " + ex.getMessage(), ex);
+                    "CotaTrack orchestrator failed while fetching market quotes: " + ex.getMessage(), ex);
         }
 
         if (result == null || result.getData() == null || result.getData().isEmpty()) {
             throw new MarketDataUnavailableException(
-                    "All market data providers returned no quote for " + tickerSymbol + ".");
+                    "All market data providers returned no market quotes.");
         }
 
-        // Find the quote (symbol may be with or without .SA suffix)
-        Quote quote = findQuote(result.getData(), mappedSymbol);
-        if (quote == null) {
-            quote = findQuote(result.getData(), tickerSymbol);
+        Map<String, MarketQuote> quotes = new java.util.HashMap<>();
+        for (Map.Entry<String, String> requested : requestedSymbols.entrySet()) {
+            Quote quote = findQuote(result.getData(), requested.getValue());
+            if (quote == null) {
+                quote = findQuote(result.getData(), requested.getKey());
+            }
+            if (quote == null) {
+                throw new MarketDataUnavailableException(
+                        "Quote not found in provider response for " + requested.getKey() + ".");
+            }
+            quotes.put(requested.getKey(), mapToMarketQuote(quote, requested.getKey(), result.getProviderName()));
         }
-        if (quote == null) {
-            throw new MarketDataUnavailableException(
-                    "Quote not found in provider response for " + tickerSymbol + ".");
-        }
-
-        return mapToMarketQuote(quote, tickerSymbol, result.getProviderName());
+        return quotes;
     }
 
     private Quote findQuote(java.util.Map<String, Quote> data, String symbol) {

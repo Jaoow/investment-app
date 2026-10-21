@@ -9,6 +9,7 @@ import java.util.Set;
 public class UserResponse {
 
     private Long id;
+    private String name;
     private String email;
     private Date createdAt;
     private Date updatedAt;

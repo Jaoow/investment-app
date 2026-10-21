@@ -234,7 +234,7 @@ class SuggestionIntegrationTests {
 
     @Test
     @WithMockUser(username = "suggestion-owner@example.com", roles = "USER")
-    void rejectsInconsistentCategoryTargetsWithoutDeletingSavedAllocation() throws Exception {
+    void acceptsPartialCategoryTargets() throws Exception {
                 mockMvc.perform(post("/v1/portfolio/{id}/allocations", portfolioId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -244,11 +244,11 @@ class SuggestionIntegrationTests {
                                   "assetAllocations":[{"tickerSymbol":"ABC","targetPercentage":100.00}]
                                 }]
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isCreated());
 
         assertEquals(1, categoryAllocationRepository.findByPortfolioId(portfolioId).size());
         assertEquals(0, categoryAllocationRepository.findByPortfolioId(portfolioId).getFirst()
-                .getTargetPercentage().compareTo(new BigDecimal("100.00")));
+                .getTargetPercentage().compareTo(new BigDecimal("50.00")));
     }
 
     @Test
@@ -288,11 +288,11 @@ class SuggestionIntegrationTests {
                         .andExpect(jsonPath("$.portfolioId").value(portfolioId))
                         .andExpect(jsonPath("$.assetsCount").value(0))
                         .andExpect(jsonPath("$.assets").isEmpty())
-                        .andExpect(jsonPath("$.classes.length()").value(6));
+                        .andExpect(jsonPath("$.classes.length()").value(7));
 
                 mockMvc.perform(get("/v1/portfolio/{id}/classes", portfolioId))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.length()").value(6))
+                                .andExpect(jsonPath("$.length()").value(7))
                                 .andExpect(jsonPath("$[?(@.id == 'equities')].targetPercentage").value(100.0));
 
                 mockMvc.perform(get("/v1/portfolio/{id}/classes/equities", portfolioId))

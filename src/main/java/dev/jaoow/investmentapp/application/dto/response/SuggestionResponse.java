@@ -13,5 +13,7 @@ public class SuggestionResponse {
     private String currency;
     private List<SuggestionItemResponse> items;
     private List<ExcludedSuggestionResponse> excludedAssets;
+    private boolean configurationRequired;
+    private String configurationMessage;
     private String disclaimer;
 }

@@ -10,6 +10,8 @@ public record RecommendationCalculationResponse(
         BigDecimal remainingAmount,
         List<Recommendation> recommendations,
         List<ExcludedSuggestionResponse> excludedAssets,
+        boolean configurationRequired,
+        String configurationMessage,
         String disclaimer
 ) {
     public record Recommendation(

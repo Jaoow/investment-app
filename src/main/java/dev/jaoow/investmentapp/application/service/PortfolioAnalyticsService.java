@@ -202,6 +202,7 @@ public class PortfolioAnalyticsService {
             case BDRS -> "bdrs";
             case FIXED_INCOME -> "fixedIncome";
             case TREASURY -> "treasury";
+            case OTHERS -> "others";
         };
     }
 
@@ -213,6 +214,7 @@ public class PortfolioAnalyticsService {
             case BDRS -> "BDRs";
             case FIXED_INCOME -> "Renda fixa";
             case TREASURY -> "Tesouro Direto";
+            case OTHERS -> "Outros";
         };
     }
 }
