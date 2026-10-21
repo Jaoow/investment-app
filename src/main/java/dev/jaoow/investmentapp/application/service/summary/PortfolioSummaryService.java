@@ -37,6 +37,12 @@ public class PortfolioSummaryService {
     @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#portfolioId, authentication)")
     @Transactional
     public PortfolioSummaryResponse getPortfolioSummary(Long portfolioId, String category) {
+        return getPortfolioSummary(portfolioId, category, true);
+    }
+
+    @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#portfolioId, authentication)")
+    @Transactional
+    public PortfolioSummaryResponse getPortfolioSummary(Long portfolioId, String category, boolean includeQuotes) {
         Portfolio portfolio = portfolioRepository.findById(portfolioId)
                 .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
 
@@ -45,7 +51,9 @@ public class PortfolioSummaryService {
                 ? filterByCategory(assetConsolidations, category)
                 : assetConsolidations;
 
-        List<AssetSummaryResponse> assetSummaries = assetSummaryService.createAssetSummaries(filteredAssets);
+        List<AssetSummaryResponse> assetSummaries = includeQuotes
+                ? assetSummaryService.createAssetSummaries(filteredAssets)
+                : assetSummaryService.createAssetSummariesWithoutQuotes(filteredAssets);
 
         BigDecimal totalInvested = filteredAssets.stream()
                 .map(AssetConsolidation::getInvestedAmount)

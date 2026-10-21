@@ -4,12 +4,14 @@ import dev.jaoow.investmentapp.application.dto.request.AssetMovementRequest;
 import dev.jaoow.investmentapp.application.dto.response.AssetMovementResponse;
 import dev.jaoow.investmentapp.application.service.movement.AssetMovementImportService;
 import dev.jaoow.investmentapp.application.service.movement.AssetMovementService;
+import dev.jaoow.investmentapp.application.service.movement.AssetMovementTemplateService;
+import dev.jaoow.investmentapp.application.service.movement.AssetPositionImportService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,10 +24,17 @@ public class AssetMovementController {
 
     private final AssetMovementService assetMovementService;
     private final AssetMovementImportService assetMovementImportService;
+    private final AssetPositionImportService assetPositionImportService;
+    private final AssetMovementTemplateService templateService;
 
-    public AssetMovementController(AssetMovementService assetMovementService, AssetMovementImportService assetMovementImportService) {
+    public AssetMovementController(AssetMovementService assetMovementService,
+                                   AssetMovementImportService assetMovementImportService,
+                                   AssetPositionImportService assetPositionImportService,
+                                   AssetMovementTemplateService templateService) {
         this.assetMovementService = assetMovementService;
         this.assetMovementImportService = assetMovementImportService;
+        this.assetPositionImportService = assetPositionImportService;
+        this.templateService = templateService;
     }
 
     @GetMapping
@@ -43,6 +52,28 @@ public class AssetMovementController {
     @ResponseStatus(HttpStatus.CREATED)
     public List<AssetMovementResponse> importAssetMovements(@PathVariable Long portfolioId, @RequestParam("file") MultipartFile file) {
         return assetMovementImportService.importAssetMovements(portfolioId, file);
+    }
+
+    @PostMapping(value = "/position-import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<AssetMovementResponse> importCurrentPositions(@PathVariable Long portfolioId,
+                                                               @RequestParam("file") MultipartFile file) {
+        return assetPositionImportService.importCurrentPositions(portfolioId, file);
+    }
+
+    @GetMapping("/import-template")
+    public ResponseEntity<byte[]> downloadImportTemplate(@PathVariable Long portfolioId,
+                                                         @RequestParam(defaultValue = "movements") String type) {
+        byte[] content = "positions".equalsIgnoreCase(type)
+                ? templateService.createPositionsTemplate()
+                : templateService.createMovementsTemplate();
+        String filename = "positions".equalsIgnoreCase(type)
+                ? "modelo-posicao-atual.xlsx"
+                : "modelo-movimentacoes.xlsx";
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header("Content-Disposition", "attachment; filename=\"" + filename + "\"")
+                .body(content);
     }
 
     @GetMapping("/{movementId}")

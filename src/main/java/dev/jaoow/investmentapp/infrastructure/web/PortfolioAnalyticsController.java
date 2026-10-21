@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -26,8 +27,9 @@ public class PortfolioAnalyticsController {
     }
 
     @GetMapping("/overview")
-    public PortfolioOverviewResponse getOverview(@PathVariable Long portfolioId) {
-        var summary = portfolioSummaryService.getPortfolioSummary(portfolioId, null);
+    public PortfolioOverviewResponse getOverview(@PathVariable Long portfolioId,
+                                                 @RequestParam(defaultValue = "true") boolean includeQuotes) {
+        var summary = portfolioSummaryService.getPortfolioSummary(portfolioId, null, includeQuotes);
         return new PortfolioOverviewResponse(
                 summary.getPortfolioId(),
                 summary.getCurrentValue(),

@@ -99,8 +99,18 @@ key in frontend environment variables.
 
 - JWT authentication and portfolio CRUD under `/auth` and `/v1/portfolio`.
 - Portfolio holdings/movements and XLSX import under `/v1/portfolio/{portfolioId}/movement`.
+  The internal movement template is available at
+  `GET /v1/portfolio/{portfolioId}/movement/import-template?type=movements` and
+  is imported with `POST .../movement/import`. A current-position template,
+  containing `Ticker`, `Quantidade` and `Preço médio`, is available with
+  `type=positions` and imported with `POST .../movement/position-import`.
+  Position imports replace the portfolio's existing movements with a snapshot
+  represented by dated buy movements; the B3 import remains a separate flow.
 - Category/asset targets under `/v1/portfolio/{portfolioId}/allocations`.
 - Current quote endpoint `GET /v1/quotes?ticker=...`.
+- Portfolio overview accepts `includeQuotes=false` for detail screens that
+  already request one asset separately, avoiding market-data requests for every
+  holding.
 - Per-portfolio ceiling CRUD at `/v1/portfolio/{portfolioId}/assets/{tickerSymbol}/ceiling`.
 - Authenticated manual ticker registration at `POST /v1/ticker/register` with
   `{"symbol":"ITUB4","category":"EQUITIES"}`. Categories also include
@@ -136,7 +146,10 @@ Weights must be non-negative; available signals are normalized by their configur
 
 The market adapter uses brapi.dev's documented v2 quote endpoint and Bearer authentication; cache entries include the complete query key. The app requires a market timestamp for recommendations and does not present a quote without one as fresh. The API provider and its data are not a direct B3 integration. Confirm the provider's current terms, licensed display/storage rights, plan limits and commercial-use conditions before a public/commercial launch. No undocumented API quotas or prices are assumed here.
 
-No direct B3/custodian holdings synchronization is implemented. XLSX movement import remains manual and now rejects a malformed row instead of silently importing a partial portfolio. Recommendations are informational and do not constitute financial advice.
+No direct B3/custodian holdings synchronization is implemented. XLSX movement
+and current-position imports remain manual and reject malformed rows instead of
+silently importing a partial portfolio. Recommendations are informational and
+do not constitute financial advice.
 
 ## Security and sharing
 

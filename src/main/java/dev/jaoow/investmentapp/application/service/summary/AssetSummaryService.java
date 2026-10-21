@@ -126,6 +126,20 @@ public class AssetSummaryService {
         return assetSummaries;
     }
 
+    public List<AssetSummaryResponse> createAssetSummariesWithoutQuotes(List<AssetConsolidation> assetConsolidations) {
+        List<AssetSummaryResponse> assetSummaries = new ArrayList<>();
+        for (AssetConsolidation consolidation : assetConsolidations) {
+            BigDecimal investedAmount = consolidation.getInvestedAmount();
+            BigDecimal totalQuantity = consolidation.getTotalQuantity();
+            AssetSummaryResponse assetSummary = createAssetSummary(
+                    consolidation.getTickerSymbol(), BigDecimal.ZERO, investedAmount, totalQuantity);
+            mapQuoteAndTickerInfo(
+                    tickerRepository.findById(consolidation.getTickerSymbol()), null, assetSummary);
+            assetSummaries.add(assetSummary);
+        }
+        return assetSummaries;
+    }
+
     private Quote fetchQuote(String tickerSymbol) {
         return quoteService.findQuote(tickerSymbol).orElse(null);
     }

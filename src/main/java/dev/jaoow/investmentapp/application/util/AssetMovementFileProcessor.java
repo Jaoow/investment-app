@@ -21,11 +21,11 @@ import java.util.Map;
 @Service
 public class AssetMovementFileProcessor {
 
-    private static final String DATE_COLUMN = "Data do Negócio";
-    private static final String TYPE_COLUMN = "Tipo de Movimentação";
-    private static final String TICKER_COLUMN = "Código de Negociação";
+    private static final String DATE_COLUMN = "Data";
+    private static final String TYPE_COLUMN = "Tipo";
+    private static final String TICKER_COLUMN = "Ticker";
     private static final String QUANTITY_COLUMN = "Quantidade";
-    private static final String PRICE_COLUMN = "Preço";
+    private static final String PRICE_COLUMN = "Preço unitário";
 
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -74,7 +74,12 @@ public class AssetMovementFileProcessor {
     private Map<String, Integer> getColumnIndexes(Row headerRow) {
         Map<String, Integer> columnIndexes = new HashMap<>();
         for (Cell cell : headerRow) {
-            columnIndexes.put(cell.getStringCellValue(), cell.getColumnIndex());
+            String header = cell.getStringCellValue().trim();
+            columnIndexes.put(header, cell.getColumnIndex());
+            if ("Data do Negócio".equals(header)) columnIndexes.put(DATE_COLUMN, cell.getColumnIndex());
+            if ("Tipo de Movimentação".equals(header)) columnIndexes.put(TYPE_COLUMN, cell.getColumnIndex());
+            if ("Código de Negociação".equals(header)) columnIndexes.put(TICKER_COLUMN, cell.getColumnIndex());
+            if ("Preço".equals(header)) columnIndexes.put(PRICE_COLUMN, cell.getColumnIndex());
         }
         return columnIndexes;
     }
@@ -98,24 +103,38 @@ public class AssetMovementFileProcessor {
 
     private LocalDate parseDate(Row row, int columnIndex) {
         Cell cell = row.getCell(columnIndex);
-        if (cell == null || cell.getCellType() != CellType.STRING) {
+        if (cell == null) {
             throw new IllegalArgumentException("Invalid date format in row " + row.getRowNum());
         }
-        return LocalDate.parse(cell.getStringCellValue(), formatter);
+        if (cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
+            return cell.getLocalDateTimeCellValue().toLocalDate();
+        }
+        if (cell.getCellType() != CellType.STRING) {
+            throw new IllegalArgumentException("Invalid date format in row " + row.getRowNum());
+        }
+        return LocalDate.parse(cell.getStringCellValue().trim(), formatter);
     }
 
     private BigDecimal parseBigDecimal(Row row, int columnIndex) {
         Cell cell = row.getCell(columnIndex);
-        if (cell == null || cell.getCellType() != CellType.NUMERIC) {
+        if (cell == null) {
             throw new IllegalArgumentException("Invalid numeric value in row " + row.getRowNum());
         }
-        return BigDecimal.valueOf(cell.getNumericCellValue());
+        if (cell.getCellType() == CellType.NUMERIC) return BigDecimal.valueOf(cell.getNumericCellValue());
+        if (cell.getCellType() == CellType.STRING) {
+            try {
+                return new BigDecimal(cell.getStringCellValue().trim().replace(',', '.'));
+            } catch (NumberFormatException ignored) {
+                throw new IllegalArgumentException("Invalid numeric value in row " + row.getRowNum());
+            }
+        }
+        throw new IllegalArgumentException("Invalid numeric value in row " + row.getRowNum());
     }
 
     private MovementType mapMovementType(String type) {
-        return switch (type) {
-            case "Venda" -> MovementType.SELL;
-            case "Compra" -> MovementType.BUY;
+        return switch (type.trim().toUpperCase()) {
+            case "VENDA" -> MovementType.SELL;
+            case "COMPRA" -> MovementType.BUY;
             default -> throw new IllegalArgumentException("Tipo de movimentação desconhecido: " + type);
         };
     }
