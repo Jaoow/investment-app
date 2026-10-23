@@ -4,6 +4,7 @@ import dev.jaoow.investmentapp.domain.model.MovementType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -22,6 +23,9 @@ public class AssetMovementRequest {
     @NotNull
     @Positive(message = "Price must be positive")
     private BigDecimal price;
+
+    @PositiveOrZero(message = "Operation cost must not be negative")
+    private BigDecimal operationCost;
 
     @NotNull
     private MovementType type;

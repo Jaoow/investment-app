@@ -37,6 +37,9 @@ Start the API in another terminal:
 .\scripts\Start-Api.ps1
 ```
 
+The Maven Spring Boot run configuration enables native access for the embedded
+Tomcat process, preventing Java's native-access warning during local startup.
+
 The API automatically imports `.env.local` as Java properties when started from
 the repository root, including via the IDE with that working directory. Environment
 variables override file values. Configure the separate frontend's development

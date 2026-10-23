@@ -37,6 +37,9 @@ public class AssetConsolidationService {
 
             if (movement.getType() == MovementType.BUY) {
                 BigDecimal movementTotal = movement.getQuantity().multiply(movement.getPrice());
+                if (movement.getOperationCost() != null) {
+                    movementTotal = movementTotal.add(movement.getOperationCost());
+                }
                 consolidation.addInvestment(movementTotal);
                 consolidation.addQuantity(movement.getQuantity());
             } else if (movement.getType() == MovementType.SELL) {

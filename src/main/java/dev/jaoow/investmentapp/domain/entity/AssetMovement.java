@@ -23,6 +23,8 @@ public class AssetMovement {
 
     private BigDecimal price;
 
+    private BigDecimal operationCost;
+
     @Temporal(TemporalType.DATE)
     private LocalDate date;
 

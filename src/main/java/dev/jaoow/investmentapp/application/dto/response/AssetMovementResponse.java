@@ -12,6 +12,7 @@ public class AssetMovementResponse {
     private String tickerSymbol;
     private BigDecimal quantity;
     private BigDecimal price;
+    private BigDecimal operationCost;
     private LocalDate date;
     private MovementType type;
 }

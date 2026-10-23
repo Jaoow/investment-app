@@ -42,6 +42,18 @@ class AssetConsolidationServiceTests {
         assertThrows(InvalidPortfolioPositionException.class, () -> service.processAssetMovements(portfolio));
     }
 
+    @Test
+    void includesOperationCostInInvestedAmount() {
+        AssetMovement purchase = movement("ABC", "2", "10", MovementType.BUY);
+        purchase.setOperationCost(new BigDecimal("3.50"));
+        Portfolio portfolio = new Portfolio();
+        portfolio.setAssetMovements(List.of(purchase));
+
+        AssetConsolidation result = service.processAssetMovements(portfolio).getFirst();
+
+        assertEquals(new BigDecimal("23.50"), result.getInvestedAmount());
+    }
+
     private AssetMovement movement(String ticker, String quantity, String price, MovementType type) {
         AssetMovement movement = new AssetMovement();
         movement.setTickerSymbol(ticker);
