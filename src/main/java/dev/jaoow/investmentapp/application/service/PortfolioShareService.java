@@ -25,6 +25,7 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class PortfolioShareService {
@@ -35,22 +36,19 @@ public class PortfolioShareService {
     private final PortfolioShareRepository shareRepository;
     private final PortfolioRepository portfolioRepository;
     private final AssetConsolidationService consolidationService;
-    private final MarketQuoteProvider marketQuoteProvider;
-    private final MarketQuoteFreshness marketQuoteFreshness;
+    private final MarketQuoteLoader marketQuoteLoader;
     private final Clock clock;
 
     public PortfolioShareService(
             PortfolioShareRepository shareRepository,
             PortfolioRepository portfolioRepository,
             AssetConsolidationService consolidationService,
-            MarketQuoteProvider marketQuoteProvider,
-            MarketQuoteFreshness marketQuoteFreshness,
+            MarketQuoteLoader marketQuoteLoader,
             Clock clock) {
         this.shareRepository = shareRepository;
         this.portfolioRepository = portfolioRepository;
         this.consolidationService = consolidationService;
-        this.marketQuoteProvider = marketQuoteProvider;
-        this.marketQuoteFreshness = marketQuoteFreshness;
+        this.marketQuoteLoader = marketQuoteLoader;
         this.clock = clock;
     }
 
@@ -112,26 +110,28 @@ public class PortfolioShareService {
                 .orElseThrow(() -> new ResourceNotFoundException("Portfolio share not found."));
         Portfolio portfolio = share.getPortfolio();
         List<AssetConsolidation> positions = consolidationService.processAssetMovements(portfolio);
+        Map<String, MarketQuote> quotes = share.isIncludeValues()
+                ? marketQuoteLoader.loadFresh(positions.stream().map(AssetConsolidation::getTickerSymbol).toList())
+                : Map.of();
 
         SharedPortfolioSnapshotResponse response = new SharedPortfolioSnapshotResponse();
         response.setGeneratedAt(clock.instant());
         response.setExpiresAt(share.getExpiresAt());
         response.setIncludesValues(share.isIncludeValues());
         response.setAssets(positions.stream()
-                .map(position -> toSharedAsset(position, share.isIncludeValues()))
+                .map(position -> toSharedAsset(position, quotes.get(position.getTickerSymbol())))
                 .toList());
         return response;
     }
 
     private SharedPortfolioSnapshotResponse.SharedAssetResponse toSharedAsset(
             AssetConsolidation position,
-            boolean includeValues) {
+            MarketQuote quote) {
         SharedPortfolioSnapshotResponse.SharedAssetResponse response =
                 new SharedPortfolioSnapshotResponse.SharedAssetResponse();
         response.setTickerSymbol(position.getTickerSymbol());
         response.setQuantity(position.getTotalQuantity());
-        if (includeValues) {
-            MarketQuote quote = marketQuoteFreshness.requireFresh(marketQuoteProvider.getQuote(position.getTickerSymbol()));
+        if (quote != null) {
             response.setUnitPrice(quote.price());
             response.setMarketValue(position.getTotalQuantity().multiply(quote.price()));
             response.setCurrency(quote.currency());

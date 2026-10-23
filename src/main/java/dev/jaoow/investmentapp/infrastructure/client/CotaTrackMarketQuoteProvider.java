@@ -57,12 +57,19 @@ public class CotaTrackMarketQuoteProvider implements MarketQuoteProvider {
                 .collect(Collectors.toMap(Function.identity(), SymbolMapper::mapSymbol));
 
         ProviderResult<java.util.Map<String, Quote>> result;
+        long startedAt = System.nanoTime();
         try {
             result = orchestrator.fetchQuotes(List.copyOf(requestedSymbols.values()));
         } catch (Exception ex) {
             throw new MarketDataUnavailableException(
                     "CotaTrack orchestrator failed while fetching market quotes: " + ex.getMessage(), ex);
         }
+        log.info("CotaTrack batch quote fetch: requested={} returned={} provider={} fromCache={} durationMs={}",
+                requestedSymbols.size(),
+                result == null || result.getData() == null ? 0 : result.getData().size(),
+                result == null ? null : result.getProviderName(),
+                result != null && result.isFromCache(),
+                (System.nanoTime() - startedAt) / 1_000_000);
 
         if (result == null || result.getData() == null || result.getData().isEmpty()) {
             throw new MarketDataUnavailableException(

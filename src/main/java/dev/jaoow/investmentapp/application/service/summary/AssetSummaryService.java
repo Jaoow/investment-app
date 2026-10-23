@@ -54,18 +54,23 @@ public class AssetSummaryService {
 
     public List<AssetSummaryResponse> createAssetSummaries(List<AssetConsolidation> assetConsolidations) {
         List<AssetSummaryResponse> assetSummaries = new ArrayList<>();
+        List<String> symbols = assetConsolidations.stream().map(AssetConsolidation::getTickerSymbol).toList();
+        Map<String, Quote> quotes = quoteService.findQuotes(symbols);
+        Map<String, Ticker> tickers = findTickers(symbols);
+        int fallbackLookups = 0;
 
         for (AssetConsolidation consolidation : assetConsolidations) {
             BigDecimal investedAmount = consolidation.getInvestedAmount();
             BigDecimal totalQuantity = consolidation.getTotalQuantity();
             String tickerSymbol = consolidation.getTickerSymbol();
 
-            // 1. Fetch quote via CotaTrack multi-provider orchestrator
-            Quote currentQuote = fetchQuote(tickerSymbol);
+            // 1. Quote from the single CotaTrack batch request
+            Quote currentQuote = quotes.get(tickerSymbol);
             BigDecimal currentPrice = extractPrice(currentQuote);
 
             // 2. Fallback: If quote missing or price <= 0, try Brapi ticker resolver and Brapi direct quote
             if (currentPrice == null || currentPrice.compareTo(BigDecimal.ZERO) <= 0) {
+                fallbackLookups++;
                 try {
                     List<BrapiTickerResolveResultDto> resolveResults = brapiClient
                             .resolveTickers(List.of(tickerSymbol));
@@ -115,7 +120,7 @@ public class AssetSummaryService {
             AssetSummaryResponse assetSummary = createAssetSummary(
                     tickerSymbol, currentAssetValue, investedAmount, totalQuantity);
 
-            Optional<Ticker> foundTicker = tickerRepository.findById(tickerSymbol);
+            Optional<Ticker> foundTicker = Optional.ofNullable(tickers.get(tickerSymbol));
             if (foundTicker.isEmpty()) {
                 foundTicker = autoDiscoverTicker(tickerSymbol, currentQuote);
             }
@@ -124,21 +129,34 @@ public class AssetSummaryService {
             assetSummaries.add(assetSummary);
         }
 
+        if (fallbackLookups > 0) {
+            log.info("Asset summaries: positions={} batchResolved={} fallbackLookups={}",
+                    assetConsolidations.size(), quotes.size(), fallbackLookups);
+        }
         return assetSummaries;
     }
 
     public List<AssetSummaryResponse> createAssetSummariesWithoutQuotes(List<AssetConsolidation> assetConsolidations) {
         List<AssetSummaryResponse> assetSummaries = new ArrayList<>();
+        Map<String, Ticker> tickers = findTickers(assetConsolidations.stream()
+                .map(AssetConsolidation::getTickerSymbol).toList());
         for (AssetConsolidation consolidation : assetConsolidations) {
             BigDecimal investedAmount = consolidation.getInvestedAmount();
             BigDecimal totalQuantity = consolidation.getTotalQuantity();
             AssetSummaryResponse assetSummary = createAssetSummary(
                     consolidation.getTickerSymbol(), BigDecimal.ZERO, investedAmount, totalQuantity);
             mapQuoteAndTickerInfo(
-                    tickerRepository.findById(consolidation.getTickerSymbol()), null, assetSummary);
+                    Optional.ofNullable(tickers.get(consolidation.getTickerSymbol())), null, assetSummary);
             assetSummaries.add(assetSummary);
         }
         return assetSummaries;
+    }
+
+    private Map<String, Ticker> findTickers(List<String> symbols) {
+        Map<String, Ticker> tickers = new HashMap<>();
+        if (symbols.isEmpty()) return tickers;
+        tickerRepository.findAllById(symbols).forEach(ticker -> tickers.put(ticker.getSymbol(), ticker));
+        return tickers;
     }
 
     private Quote fetchQuote(String tickerSymbol) {

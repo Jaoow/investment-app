@@ -20,10 +20,15 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class RebalanceServiceTests {
@@ -56,15 +61,15 @@ class RebalanceServiceTests {
         AssetAllocation def = allocation(category, "DEF", "25.00");
         category.setAssetAllocations(List.of(abc, def));
         when(allocationRepository.findByPortfolioId(1L)).thenReturn(List.of(category));
-        when(quoteProvider.getQuote("ABC")).thenReturn(quote("ABC", "20", now));
-        when(quoteProvider.getQuote("DEF")).thenReturn(quote("DEF", "40", now));
+        when(quoteProvider.getQuotes(List.of("ABC", "DEF"))).thenReturn(Map.of(
+                "ABC", quote("ABC", "20", now),
+                "DEF", quote("DEF", "40", now)));
 
         RebalanceService service = new RebalanceService(
                 portfolioRepository,
                 allocationRepository,
                 new AssetConsolidationService(),
-                quoteProvider,
-                freshness,
+                new MarketQuoteLoader(quoteProvider, freshness),
                 mock(TickerRepository.class)
         );
 
@@ -75,6 +80,8 @@ class RebalanceServiceTests {
         assertEquals(new BigDecimal("1"), recommendations.getFirst().getQuantity());
         assertEquals(new BigDecimal("50.0000"), recommendations.getFirst().getCurrentPercentage());
         assertEquals(new BigDecimal("75.0000"), recommendations.getFirst().getTargetPercentage());
+        verify(quoteProvider, times(1)).getQuotes(List.of("ABC", "DEF"));
+        verify(quoteProvider, never()).getQuote(anyString());
     }
 
     @Test
@@ -148,11 +155,12 @@ class RebalanceServiceTests {
         realEstate.setTargetPercentage(new BigDecimal("50.00"));
         realEstate.setAssetAllocations(List.of(allocation(realEstate, "DEF", "100.00")));
         when(allocationRepository.findByPortfolioId(1L)).thenReturn(List.of(equities, realEstate));
-        when(quoteProvider.getQuote("ABC")).thenReturn(quote("ABC", "20", now));
-        when(quoteProvider.getQuote("DEF")).thenReturn(quote("DEF", "20", now));
+        when(quoteProvider.getQuotes(List.of("ABC", "DEF"))).thenReturn(Map.of(
+                "ABC", quote("ABC", "20", now),
+                "DEF", quote("DEF", "20", now)));
 
         return new RebalanceService(portfolioRepository, allocationRepository, new AssetConsolidationService(),
-                quoteProvider, freshness, mock(TickerRepository.class));
+                new MarketQuoteLoader(quoteProvider, freshness), mock(TickerRepository.class));
     }
 
     private AssetMovement movement(String ticker, String quantity, String price, MovementType type) {

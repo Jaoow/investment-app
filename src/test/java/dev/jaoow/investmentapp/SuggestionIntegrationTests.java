@@ -29,6 +29,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -107,6 +108,7 @@ class SuggestionIntegrationTests {
         preferenceRepository.save(preference);
 
         Instant now = Instant.now();
+        given(marketQuoteProvider.getQuotes(anyList())).willCallRealMethod();
         given(marketQuoteProvider.getQuote("ABC")).willReturn(new MarketQuote(
                 "ABC",
                 "ABC Energia",

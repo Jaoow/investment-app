@@ -16,12 +16,18 @@ import org.modelmapper.ModelMapper;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class AssetSummaryServiceTests {
@@ -33,7 +39,7 @@ class AssetSummaryServiceTests {
         BrapiClient brapiClient = mock(BrapiClient.class);
         MarketTickerProvider marketTickerProvider = mock(MarketTickerProvider.class);
 
-        when(quoteService.findQuote("ABC")).thenReturn(Optional.empty());
+        when(quoteService.findQuotes(List.of("ABC"))).thenReturn(Map.of());
         when(brapiClient.resolveTickers(List.of("ABC"))).thenReturn(List.of());
         when(brapiClient.getQuote("ABC", null, null, null, null)).thenReturn(Optional.empty());
 
@@ -62,12 +68,12 @@ class AssetSummaryServiceTests {
                 .symbol("PETR4")
                 .regularMarketPrice(35.50)
                 .build();
-        when(quoteService.findQuote("PETR4")).thenReturn(Optional.of(quote));
+        when(quoteService.findQuotes(List.of("PETR4"))).thenReturn(Map.of("PETR4", quote));
 
         Ticker ticker = new Ticker();
         ticker.setSymbol("PETR4");
         ticker.setCategory(AssetCategory.EQUITIES);
-        when(tickerRepository.findById("PETR4")).thenReturn(Optional.of(ticker));
+        when(tickerRepository.findAllById(List.of("PETR4"))).thenReturn(List.of(ticker));
 
         ModelMapper modelMapper = new ModelMapper();
         AssetSummaryService service = new AssetSummaryService(
@@ -93,7 +99,7 @@ class AssetSummaryServiceTests {
         MarketTickerProvider marketTickerProvider = mock(MarketTickerProvider.class);
 
         // Initial ticker BIDI4 has no quote
-        when(quoteService.findQuote("BIDI4")).thenReturn(Optional.empty());
+        when(quoteService.findQuotes(List.of("BIDI4"))).thenReturn(Map.of());
 
         // Brapi resolves BIDI4 -> INBR32
         BrapiTickerResolveResultDto resolveResult = new BrapiTickerResolveResultDto();
@@ -135,9 +141,9 @@ class AssetSummaryServiceTests {
                 .shortName("BPAC11")
                 .longName("Banco BTG Pactual SA Units Cons of 1 Sh + 2 Pfd Shs A")
                 .build();
-        when(quoteService.findQuote("BPAC11")).thenReturn(Optional.of(quote));
+        when(quoteService.findQuotes(List.of("BPAC11"))).thenReturn(Map.of("BPAC11", quote));
 
-        when(tickerRepository.findById("BPAC11")).thenReturn(Optional.empty());
+        when(tickerRepository.findAllById(List.of("BPAC11"))).thenReturn(List.of());
 
         MarketTicker tvDetail = new MarketTicker(
                 "BPAC11", "BPAC11", "Banco BTG Pactual SA Units Cons of 1 Sh + 2 Pfd Shs A",
@@ -157,5 +163,37 @@ class AssetSummaryServiceTests {
         assertEquals(1, summaries.size());
         assertNotNull(summaries.get(0).getTickerFields());
         assertEquals("EQUITIES", summaries.get(0).getTickerFields().getCategory());
+    }
+
+    @Test
+    void loadsAllQuotesAndTickersWithOneBatchCallEach() {
+        TickerRepository tickerRepository = mock(TickerRepository.class);
+        QuoteService quoteService = mock(QuoteService.class);
+        BrapiClient brapiClient = mock(BrapiClient.class);
+        List<String> symbols = List.of("PETR4", "VALE3", "ITUB4");
+        when(quoteService.findQuotes(symbols)).thenReturn(Map.of(
+                "PETR4", Quote.builder().symbol("PETR4").regularMarketPrice(35.0).build(),
+                "VALE3", Quote.builder().symbol("VALE3").regularMarketPrice(60.0).build(),
+                "ITUB4", Quote.builder().symbol("ITUB4").regularMarketPrice(30.0).build()));
+        when(tickerRepository.findAllById(symbols)).thenReturn(symbols.stream().map(symbol -> {
+            Ticker ticker = new Ticker();
+            ticker.setSymbol(symbol);
+            ticker.setCategory(AssetCategory.EQUITIES);
+            return ticker;
+        }).toList());
+        AssetSummaryService service = new AssetSummaryService(
+                tickerRepository, quoteService, brapiClient, mock(MarketTickerProvider.class), new ModelMapper());
+
+        List<AssetSummaryResponse> summaries = service.createAssetSummaries(symbols.stream()
+                .map(symbol -> new AssetConsolidation(symbol, new BigDecimal("100"), BigDecimal.ONE))
+                .toList());
+
+        assertEquals(3, summaries.size());
+        assertEquals(0, new BigDecimal("60").compareTo(summaries.get(1).getCurrentValue()));
+        verify(quoteService, times(1)).findQuotes(symbols);
+        verify(quoteService, never()).findQuote(anyString());
+        verify(tickerRepository, times(1)).findAllById(symbols);
+        verify(tickerRepository, never()).findById(anyString());
+        verifyNoInteractions(brapiClient);
     }
 }

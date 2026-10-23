@@ -16,7 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class PortfolioSummaryService {
@@ -67,16 +68,15 @@ public class PortfolioSummaryService {
     }
 
     private List<AssetConsolidation> filterByCategory(List<AssetConsolidation> assetConsolidations, String category) {
-        return assetConsolidations.stream().filter(assetConsolidation -> {
-            String tickerSymbol = assetConsolidation.getTickerSymbol();
-            Optional<Ticker> optionalTicker = tickerRepository.findById(tickerSymbol);
-            if (optionalTicker.isPresent()) {
-                Ticker ticker = optionalTicker.get();
-                return ticker.getCategory().name().equalsIgnoreCase(category);
-            } else {
-                return false;
-            }
-        }).toList();
+        Set<String> matchingSymbols = tickerRepository.findAllById(assetConsolidations.stream()
+                        .map(AssetConsolidation::getTickerSymbol)
+                        .toList()).stream()
+                .filter(ticker -> ticker.getCategory() != null && ticker.getCategory().name().equalsIgnoreCase(category))
+                .map(Ticker::getSymbol)
+                .collect(Collectors.toSet());
+        return assetConsolidations.stream()
+                .filter(assetConsolidation -> matchingSymbols.contains(assetConsolidation.getTickerSymbol()))
+                .toList();
     }
 
     private PortfolioSummaryResponse buildPortfolioSummary(Long portfolioId, BigDecimal totalInvested,

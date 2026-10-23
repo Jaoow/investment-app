@@ -6,7 +6,6 @@ import dev.jaoow.investmentapp.application.dto.response.RebalanceRecommendationR
 import dev.jaoow.investmentapp.application.dto.response.RebalanceSalePlanResponse;
 import dev.jaoow.investmentapp.application.exception.PortfolioNotFoundException;
 import dev.jaoow.investmentapp.application.model.AssetConsolidation;
-import dev.jaoow.investmentapp.application.model.MarketQuote;
 import dev.jaoow.investmentapp.application.service.consolidation.AssetConsolidationService;
 import dev.jaoow.investmentapp.domain.entity.*;
 import dev.jaoow.investmentapp.domain.model.AssetCategory;
@@ -38,21 +37,18 @@ public class RebalanceService {
     private final PortfolioRepository portfolioRepository;
     private final CategoryAllocationRepository categoryAllocationRepository;
     private final AssetConsolidationService assetConsolidationService;
-    private final MarketQuoteProvider marketQuoteProvider;
-    private final MarketQuoteFreshness marketQuoteFreshness;
+    private final MarketQuoteLoader marketQuoteLoader;
     private final TickerRepository tickerRepository;
 
     public RebalanceService(PortfolioRepository portfolioRepository,
                             CategoryAllocationRepository categoryAllocationRepository,
                             AssetConsolidationService assetConsolidationService,
-                            MarketQuoteProvider marketQuoteProvider,
-                            MarketQuoteFreshness marketQuoteFreshness,
+                            MarketQuoteLoader marketQuoteLoader,
                             TickerRepository tickerRepository) {
         this.portfolioRepository = portfolioRepository;
         this.categoryAllocationRepository = categoryAllocationRepository;
         this.assetConsolidationService = assetConsolidationService;
-        this.marketQuoteProvider = marketQuoteProvider;
-        this.marketQuoteFreshness = marketQuoteFreshness;
+        this.marketQuoteLoader = marketQuoteLoader;
         this.tickerRepository = tickerRepository;
     }
 
@@ -340,10 +336,7 @@ public class RebalanceService {
 
     private Map<String, BigDecimal> loadPrices(Set<String> tickers) {
         Map<String, BigDecimal> prices = new HashMap<>();
-        for (String ticker : tickers) {
-            MarketQuote quote = marketQuoteFreshness.requireFresh(marketQuoteProvider.getQuote(ticker));
-            prices.put(ticker, quote.price());
-        }
+        marketQuoteLoader.loadFresh(tickers).forEach((ticker, quote) -> prices.put(ticker, quote.price()));
         return prices;
     }
 

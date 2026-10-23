@@ -8,8 +8,7 @@ import dev.jaoow.investmentapp.application.exception.MarketDataUnavailableExcept
 import dev.jaoow.investmentapp.application.exception.PortfolioNotFoundException;
 import dev.jaoow.investmentapp.application.model.AssetConsolidation;
 import dev.jaoow.investmentapp.application.model.MarketQuote;
-import dev.jaoow.investmentapp.application.service.MarketQuoteFreshness;
-import dev.jaoow.investmentapp.application.service.MarketQuoteProvider;
+import dev.jaoow.investmentapp.application.service.MarketQuoteLoader;
 import dev.jaoow.investmentapp.application.service.consolidation.AssetConsolidationService;
 import dev.jaoow.investmentapp.domain.entity.AssetAllocation;
 import dev.jaoow.investmentapp.domain.entity.CategoryAllocation;
@@ -43,8 +42,7 @@ public class SuggestionService {
     private final CategoryAllocationRepository categoryAllocationRepository;
     private final PortfolioAssetPreferenceRepository preferenceRepository;
     private final AssetConsolidationService assetConsolidationService;
-    private final MarketQuoteProvider marketQuoteProvider;
-    private final MarketQuoteFreshness marketQuoteFreshness;
+    private final MarketQuoteLoader marketQuoteLoader;
     private final RecommendationWeights recommendationWeights;
     private final RecommendationAllocator recommendationAllocator;
 
@@ -53,16 +51,14 @@ public class SuggestionService {
             CategoryAllocationRepository categoryAllocationRepository,
             PortfolioAssetPreferenceRepository preferenceRepository,
             AssetConsolidationService assetConsolidationService,
-            MarketQuoteProvider marketQuoteProvider,
-            MarketQuoteFreshness marketQuoteFreshness,
+            MarketQuoteLoader marketQuoteLoader,
             RecommendationWeights recommendationWeights,
             RecommendationAllocator recommendationAllocator) {
         this.portfolioRepository = portfolioRepository;
         this.categoryAllocationRepository = categoryAllocationRepository;
         this.preferenceRepository = preferenceRepository;
         this.assetConsolidationService = assetConsolidationService;
-        this.marketQuoteProvider = marketQuoteProvider;
-        this.marketQuoteFreshness = marketQuoteFreshness;
+        this.marketQuoteLoader = marketQuoteLoader;
         this.recommendationWeights = recommendationWeights;
         this.recommendationAllocator = recommendationAllocator;
     }
@@ -148,22 +144,13 @@ public class SuggestionService {
     }
 
     private Map<String, MarketQuote> loadFreshQuotes(Set<String> symbols, String currency) {
-        Map<String, MarketQuote> fetchedQuotes = marketQuoteProvider.getQuotes(List.copyOf(symbols));
-        if (fetchedQuotes == null || fetchedQuotes.isEmpty()) {
-            fetchedQuotes = symbols.stream()
-                    .collect(Collectors.toMap(symbol -> symbol, marketQuoteProvider::getQuote));
-        }
-
-        Map<String, MarketQuote> quotes = new HashMap<>();
-        for (Map.Entry<String, MarketQuote> entry : fetchedQuotes.entrySet()) {
-            String symbol = entry.getKey();
-            MarketQuote quote = marketQuoteFreshness.requireFresh(entry.getValue());
+        Map<String, MarketQuote> quotes = marketQuoteLoader.loadFresh(symbols);
+        quotes.forEach((symbol, quote) -> {
             if (!currency.equals(quote.currency())) {
                 throw new MarketDataUnavailableException("Quote currency for " + symbol
                         + " does not match requested currency " + currency + ".");
             }
-            quotes.put(symbol, quote);
-        }
+        });
         return quotes;
     }
 
