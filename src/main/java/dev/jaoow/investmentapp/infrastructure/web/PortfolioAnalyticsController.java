@@ -3,6 +3,7 @@ package dev.jaoow.investmentapp.infrastructure.web;
 import dev.jaoow.investmentapp.application.dto.response.PortfolioClassDetailResponse;
 import dev.jaoow.investmentapp.application.dto.response.PortfolioClassResponse;
 import dev.jaoow.investmentapp.application.dto.response.PortfolioAssetDetailResponse;
+import dev.jaoow.investmentapp.application.dto.response.PortfolioConcentrationResponse;
 import dev.jaoow.investmentapp.application.dto.response.PortfolioOverviewResponse;
 import dev.jaoow.investmentapp.application.service.PortfolioAnalyticsService;
 import dev.jaoow.investmentapp.application.service.summary.PortfolioSummaryService;
@@ -54,5 +55,10 @@ public class PortfolioAnalyticsController {
     @GetMapping("/assets/{ticker}")
     public PortfolioAssetDetailResponse getAssetDetail(@PathVariable Long portfolioId, @PathVariable String ticker) {
         return portfolioAnalyticsService.getAssetDetail(portfolioId, ticker);
+    }
+
+    @GetMapping("/concentration")
+    public PortfolioConcentrationResponse getConcentration(@PathVariable Long portfolioId) {
+        return portfolioAnalyticsService.getConcentration(portfolioId);
     }
 }
