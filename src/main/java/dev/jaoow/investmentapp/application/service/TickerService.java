@@ -7,6 +7,7 @@ import dev.jaoow.investmentapp.application.dto.response.SectorResponse;
 import dev.jaoow.investmentapp.application.dto.response.TickerResponse;
 import dev.jaoow.investmentapp.application.exception.TickerNotFoundException;
 import dev.jaoow.investmentapp.application.exception.InvalidTickerException;
+import dev.jaoow.investmentapp.application.util.SectorTranslator;
 import dev.jaoow.investmentapp.application.util.TickerSymbol;
 import dev.jaoow.investmentapp.domain.entity.Ticker;
 import dev.jaoow.investmentapp.domain.repository.TickerRepository;
@@ -37,13 +38,12 @@ public class TickerService {
     public TickerResponse getTicker(String symbol) {
         Ticker ticker = tickerRepository.findById(symbol)
                 .orElseThrow(() -> new TickerNotFoundException(symbol));
-        return modelMapper.map(ticker, TickerResponse.class);
+        return toResponse(ticker);
     }
 
     @Transactional(readOnly = true)
     public PagedModel<TickerResponse> getAllTickers(Pageable pageable) {
-        return new PagedModel<>(tickerRepository.findAll(pageable)
-                .map(ticker -> modelMapper.map(ticker, TickerResponse.class)));
+        return new PagedModel<>(tickerRepository.findAll(pageable).map(this::toResponse));
     }
 
     @Transactional
@@ -51,7 +51,7 @@ public class TickerService {
     public TickerResponse createTicker(TickerRequest tickerRequest) {
         Ticker ticker = modelMapper.map(tickerRequest, Ticker.class);
         ticker = tickerRepository.save(ticker);
-        return modelMapper.map(ticker, TickerResponse.class);
+        return toResponse(ticker);
     }
 
     @Transactional
@@ -64,7 +64,7 @@ public class TickerService {
                 throw new InvalidTickerException(
                         symbol + " já está cadastrado na categoria " + existing.getCategory() + ".");
             }
-            return modelMapper.map(existing, TickerResponse.class);
+            return toResponse(existing);
         }
         Ticker ticker = new Ticker();
         ticker.setSymbol(symbol);
@@ -86,7 +86,7 @@ public class TickerService {
             // Ignora falha silenciosamente caso não consiga buscar no provedor
         }
 
-        return modelMapper.map(tickerRepository.save(ticker), TickerResponse.class);
+        return toResponse(tickerRepository.save(ticker));
     }
 
     @Transactional
@@ -97,7 +97,7 @@ public class TickerService {
 
         Ticker ticker = modelMapper.map(tickerRequest, Ticker.class);
         ticker = tickerRepository.save(ticker);
-        return modelMapper.map(ticker, TickerResponse.class);
+        return toResponse(ticker);
     }
 
     @Transactional
@@ -126,6 +126,12 @@ public class TickerService {
                 filterRequest.getSubSector(),
                 pageable
         );
-        return new PagedModel<>(search.map(ticker -> modelMapper.map(ticker, TickerResponse.class)));
+        return new PagedModel<>(search.map(this::toResponse));
+    }
+
+    private TickerResponse toResponse(Ticker ticker) {
+        TickerResponse response = modelMapper.map(ticker, TickerResponse.class);
+        response.setSector(SectorTranslator.translate(ticker.getSector()));
+        return response;
     }
 }

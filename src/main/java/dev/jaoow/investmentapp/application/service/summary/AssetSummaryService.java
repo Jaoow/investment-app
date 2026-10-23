@@ -11,6 +11,7 @@ import dev.jaoow.investmentapp.application.model.MarketTicker;
 import dev.jaoow.cotatrack.api.classification.AssetClassifier;
 import dev.jaoow.investmentapp.application.service.MarketTickerProvider;
 import dev.jaoow.investmentapp.application.service.QuoteService;
+import dev.jaoow.investmentapp.application.util.SectorTranslator;
 import dev.jaoow.investmentapp.domain.entity.Ticker;
 import dev.jaoow.investmentapp.domain.model.AssetCategory;
 import dev.jaoow.investmentapp.domain.repository.TickerRepository;
@@ -198,7 +199,7 @@ public class AssetSummaryService {
             tickerFields.setLongName(currentQuote != null && currentQuote.getLongName() != null ? currentQuote.getLongName() : ticker.getName());
             tickerFields.setLogoUrl(ticker.getLogoUrl());
             tickerFields.setCategory(ticker.getCategory() != null ? ticker.getCategory().name() : null);
-            tickerFields.setSector(ticker.getSector());
+            tickerFields.setSector(SectorTranslator.translate(ticker.getSector()));
             tickerFields.setSubSector(ticker.getSubSector());
             assetSummary.setTickerFields(tickerFields);
         } else if (currentQuote != null) {
@@ -211,7 +212,7 @@ public class AssetSummaryService {
             tickerFields.setLongName(currentQuote.getLongName());
             tickerFields.setLogoUrl(currentQuote.getLogoUrl());
             tickerFields.setCategory(currentQuote.getCategory());
-            tickerFields.setSector(currentQuote.getSector());
+            tickerFields.setSector(SectorTranslator.translate(currentQuote.getSector()));
             assetSummary.setTickerFields(tickerFields);
         }
     }
