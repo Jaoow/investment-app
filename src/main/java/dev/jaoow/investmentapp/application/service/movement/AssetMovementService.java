@@ -3,12 +3,17 @@ package dev.jaoow.investmentapp.application.service.movement;
 import dev.jaoow.investmentapp.application.dto.request.AssetMovementRequest;
 import dev.jaoow.investmentapp.application.dto.response.AssetMovementResponse;
 import dev.jaoow.investmentapp.application.exception.AssetMovementNotFoundException;
+import dev.jaoow.investmentapp.application.exception.InvalidPortfolioPositionException;
+import dev.jaoow.investmentapp.application.exception.InvalidTickerException;
 import dev.jaoow.investmentapp.application.exception.PortfolioMismatchException;
 import dev.jaoow.investmentapp.application.exception.PortfolioNotFoundException;
+import dev.jaoow.investmentapp.application.util.TickerSymbol;
 import dev.jaoow.investmentapp.domain.entity.AssetMovement;
 import dev.jaoow.investmentapp.domain.entity.Portfolio;
+import dev.jaoow.investmentapp.domain.model.MovementType;
 import dev.jaoow.investmentapp.domain.repository.AssetMovementRepository;
 import dev.jaoow.investmentapp.domain.repository.PortfolioRepository;
+import dev.jaoow.investmentapp.domain.repository.TickerRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +22,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.List;
 
@@ -25,13 +31,16 @@ public class AssetMovementService {
 
     private final AssetMovementRepository assetMovementRepository;
     private final PortfolioRepository portfolioRepository;
+    private final TickerRepository tickerRepository;
     private final ModelMapper modelMapper;
 
     public AssetMovementService(AssetMovementRepository assetMovementRepository,
                                 PortfolioRepository portfolioRepository,
+                                TickerRepository tickerRepository,
                                 ModelMapper modelMapper) {
         this.assetMovementRepository = assetMovementRepository;
         this.portfolioRepository = portfolioRepository;
+        this.tickerRepository = tickerRepository;
         this.modelMapper = modelMapper;
     }
 
@@ -69,6 +78,18 @@ public class AssetMovementService {
     @Transactional
     @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#portfolioId, authentication)")
     public AssetMovementResponse createAssetMovement(Long portfolioId, AssetMovementRequest assetMovementRequest) {
+        String symbol = TickerSymbol.normalize(assetMovementRequest.getTickerSymbol());
+        if (!tickerRepository.existsById(symbol)) {
+            throw new InvalidTickerException("O ativo " + symbol + " não está cadastrado. Selecione-o pela busca de ativos.");
+        }
+        assetMovementRequest.setTickerSymbol(symbol);
+        if (assetMovementRequest.getType() == MovementType.SELL) {
+            BigDecimal held = assetMovementRepository.sumNetQuantity(portfolioId, symbol);
+            if (assetMovementRequest.getQuantity().compareTo(held) > 0) {
+                throw new InvalidPortfolioPositionException(
+                        "Quantidade de venda maior que a posição atual de " + symbol + " (" + held.stripTrailingZeros().toPlainString() + ").");
+            }
+        }
         List<AssetMovementRequest> requests = List.of(assetMovementRequest);
         return createAssetMovementsBulk(portfolioId, requests).getFirst();
     }

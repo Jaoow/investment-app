@@ -59,7 +59,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidTickerException.class)
     public ResponseEntity<ErrorResponse> handleInvalidTickerException(InvalidTickerException ex) {
-        return error(HttpStatus.BAD_REQUEST, "INVALID_TICKER", "Ticker is invalid.", ex.getMessage());
+        return error(HttpStatus.BAD_REQUEST, "INVALID_TICKER", ex.getMessage(), null);
     }
 
     @ExceptionHandler(InvalidAllocationException.class)
@@ -69,7 +69,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidPortfolioPositionException.class)
     public ResponseEntity<ErrorResponse> handleInvalidPortfolioPositionException(InvalidPortfolioPositionException ex) {
-        return error(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_PORTFOLIO_POSITION", "Portfolio position is invalid.", ex.getMessage());
+        return error(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_PORTFOLIO_POSITION", ex.getMessage(), null);
     }
 
     @ExceptionHandler(InvalidPortfolioShareException.class)
