@@ -2,9 +2,15 @@
 
 Investize is a Spring Boot REST API for tracking investment portfolios and simulating whole-unit contributions. The React web frontend is maintained separately.
 
+## Engineering review
+
+The [engineering audit and improvement roadmap](docs/AUDITORIA-ENGENHARIA-2026-10-27.md)
+documents the current architecture, verified fixes, performance measurements,
+UI/UX review, security limitations and next incremental cycles for 100 users.
+
 ## Requirements and local setup
 
-- Java 23 or compatible JDK capable of compiling with `--release 23`.
+- Java 21 or a compatible newer JDK capable of compiling with `--release 21`.
 - PostgreSQL for local application runs. H2 and Flyway are used by the automated tests.
 - Maven (or the checked-in Maven wrapper).
 
@@ -87,7 +93,9 @@ Flyway owns the PostgreSQL schema (`src/main/resources/db/migration`). V1 create
 .\mvnw.cmd test
 ```
 
-Tests use H2 with the same migrations and do not call the external market-data API.
+Tests use H2 with the same migrations. Movement and asset-setting integration tests
+mock the market ticker provider so ticker registration does not depend on network
+access. H2 checks do not replace PostgreSQL query-plan or concurrency validation.
 
 ## Web frontend
 
@@ -137,7 +145,16 @@ To create a share, send `expiresAt` as a future ISO-8601 instant and set `includ
 
 The suggestion endpoint returns whole units, estimated value, residual amount, score, reasons, quote source/time and excluded-asset reasons. It is a simulation only: it does not create movements, place orders, or include costs/taxes. It blocks the calculation if required market data is missing, lacks timestamps, or is older than the configured freshness limit (`investize.recommendations.max-quote-age`, 24 hours in production); quotes above the portfolio-specific ceiling are never eligible.
 
-Allocation percentages are decimal values with two fractional digits. Category targets must total 100%; asset targets within each non-zero category must total 100%. The effective asset target is the product of category and within-category percentages. Recommendation weights are configured separately from those targets in `application.properties`:
+Allocation percentages are decimal values with two fractional digits. Partial targets
+are allowed: category targets must total **at most 100%**, and asset targets within
+each category must also total **at most 100%**, including zero-target categories.
+The unassigned percentage is not redistributed automatically. Invalid replacements
+are rejected before existing allocations are removed. The effective asset target
+is the product of category and within-category percentages.
+Summary profit percentages are calculated as `profit * 100 / invested`, rounded
+to two decimal places only at the end. A zero investment produces a zero percentage,
+independently of its decimal scale; this is not time-weighted investment performance.
+Recommendation weights are configured separately from those targets in `application.properties`:
 
 - `investize.recommendations.weights.ceiling-distance`
 - `investize.recommendations.weights.daily-drop`

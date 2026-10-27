@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -82,7 +81,7 @@ public class PortfolioSummaryService {
     private PortfolioSummaryResponse buildPortfolioSummary(Long portfolioId, BigDecimal totalInvested,
                                                            BigDecimal currentValue, List<AssetSummaryResponse> assetSummaries) {
         BigDecimal overallProfitOrLoss = currentValue.subtract(totalInvested);
-        BigDecimal overallPercentageChange = calculatePercentageChange(totalInvested, overallProfitOrLoss);
+        BigDecimal overallPercentageChange = SummaryMath.percentageChange(totalInvested, overallProfitOrLoss);
 
         return PortfolioSummaryResponse.builder()
                 .portfolioId(portfolioId)
@@ -94,8 +93,4 @@ public class PortfolioSummaryService {
                 .build();
     }
 
-    private BigDecimal calculatePercentageChange(BigDecimal investedAmount, BigDecimal profitOrLoss) {
-        return investedAmount.equals(BigDecimal.ZERO) ? BigDecimal.ZERO :
-                profitOrLoss.divide(investedAmount, 2, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
-    }
 }

@@ -130,17 +130,32 @@ public class AllocationService {
             throw new InvalidAllocationException("At least one category allocation is required.");
         }
 
+        BigDecimal categoryTotal = requests.stream()
+                .map(CategoryAllocationRequest::getCategoryTargetPercentage)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (categoryTotal.compareTo(BigDecimal.valueOf(100)) > 0) {
+            throw new InvalidAllocationException("Category allocation targets must not exceed 100%.");
+        }
+
         Set<AssetCategory> categories = new HashSet<>();
         for (CategoryAllocationRequest request : requests) {
             if (!categories.add(request.getCategory())) {
                 throw new InvalidAllocationException("Each asset category can only be configured once.");
             }
 
+            List<CategoryAllocationRequest.AssetAllocationRequest> assets = request.getAssetAllocations() == null
+                    ? List.of() : request.getAssetAllocations();
+            BigDecimal assetTotal = assets.stream()
+                    .map(CategoryAllocationRequest.AssetAllocationRequest::getTargetPercentage)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (assetTotal.compareTo(BigDecimal.valueOf(100)) > 0) {
+                throw new InvalidAllocationException("Asset allocation targets for "
+                        + request.getCategory() + " must not exceed 100%.");
+            }
+
             Set<String> tickers = new HashSet<>();
             for (CategoryAllocationRequest.AssetAllocationRequest assetRequest :
-                    request.getAssetAllocations() == null
-                            ? List.<CategoryAllocationRequest.AssetAllocationRequest>of()
-                            : request.getAssetAllocations()) {
+                    assets) {
                 assetRequest.setTickerSymbol(TickerSymbol.normalize(assetRequest.getTickerSymbol()));
                 if (!tickers.add(assetRequest.getTickerSymbol())) {
                     throw new InvalidAllocationException("Each ticker can only be configured once per category.");

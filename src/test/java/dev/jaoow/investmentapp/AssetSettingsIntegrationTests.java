@@ -1,6 +1,7 @@
 package dev.jaoow.investmentapp;
 
 import dev.jaoow.investmentapp.domain.entity.Portfolio;
+import dev.jaoow.investmentapp.application.service.MarketTickerProvider;
 import dev.jaoow.investmentapp.domain.entity.user.User;
 import dev.jaoow.investmentapp.domain.repository.PortfolioRepository;
 import dev.jaoow.investmentapp.domain.repository.user.UserRepository;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -25,6 +27,7 @@ class AssetSettingsIntegrationTests {
     @Autowired private MockMvc mvc;
     @Autowired private UserRepository users;
     @Autowired private PortfolioRepository portfolios;
+    @MockBean private MarketTickerProvider marketTickers;
     private Long portfolioId;
 
     @BeforeEach

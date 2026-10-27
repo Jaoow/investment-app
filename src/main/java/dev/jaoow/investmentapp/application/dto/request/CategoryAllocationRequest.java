@@ -23,7 +23,7 @@ public class CategoryAllocationRequest {
     @Digits(integer = 3, fraction = 2)
     private BigDecimal categoryTargetPercentage;
 
-    private List<@Valid AssetAllocationRequest> assetAllocations;
+    private List<@NotNull @Valid AssetAllocationRequest> assetAllocations;
 
     @Data
     public static class AssetAllocationRequest {

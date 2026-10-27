@@ -172,7 +172,7 @@ public class AssetSummaryService {
     private AssetSummaryResponse createAssetSummary(String tickerSymbol, BigDecimal currentAssetValue,
             BigDecimal investedAmount, BigDecimal totalQuantity) {
         BigDecimal profitOrLoss = currentAssetValue.subtract(investedAmount);
-        BigDecimal percentageChange = calculatePercentageChange(investedAmount, profitOrLoss);
+        BigDecimal percentageChange = SummaryMath.percentageChange(investedAmount, profitOrLoss);
         BigDecimal averagePrice = calculateAveragePrice(investedAmount, totalQuantity);
 
         return AssetSummaryResponse.builder()
@@ -255,11 +255,6 @@ public class AssetSummaryService {
                 quote.getRegularMarketOpen() != null ? BigDecimal.valueOf(quote.getRegularMarketOpen()) : null);
         fields.setLogourl(quote.getLogoUrl());
         return fields;
-    }
-
-    private BigDecimal calculatePercentageChange(BigDecimal investedAmount, BigDecimal profitOrLoss) {
-        return investedAmount.equals(BigDecimal.ZERO) ? BigDecimal.ZERO
-                : profitOrLoss.divide(investedAmount, 2, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
     }
 
     private BigDecimal calculateAveragePrice(BigDecimal investedAmount, BigDecimal totalQuantity) {

@@ -87,8 +87,25 @@ class AssetSummaryServiceTests {
         assertEquals("PETR4", summary.getTickerSymbol());
         assertEquals(0, new BigDecimal("355.00").compareTo(summary.getCurrentValue()));
         assertEquals(0, new BigDecimal("55.00").compareTo(summary.getProfitOrLoss()));
+        assertEquals(0, new BigDecimal("18.33").compareTo(summary.getPercentageChange()));
         assertNotNull(summary.getTickerFields());
         assertEquals("EQUITIES", summary.getTickerFields().getCategory());
+    }
+
+    @Test
+    void handlesZeroCostPositionsWithDecimalScale() {
+        TickerRepository tickers = mock(TickerRepository.class);
+        QuoteService quotes = mock(QuoteService.class);
+        AssetSummaryService service = new AssetSummaryService(
+                tickers, quotes, mock(BrapiClient.class), mock(MarketTickerProvider.class), new ModelMapper());
+        AssetConsolidation position = new AssetConsolidation(
+                "ZERO3", new BigDecimal("0.0000"), new BigDecimal("1.00000000"));
+
+        AssetSummaryResponse summary = service.createAssetSummariesWithoutQuotes(List.of(position)).getFirst();
+
+        assertEquals(0, BigDecimal.ZERO.compareTo(summary.getPercentageChange()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(summary.getAveragePrice()));
+        verifyNoInteractions(quotes);
     }
 
     @Test

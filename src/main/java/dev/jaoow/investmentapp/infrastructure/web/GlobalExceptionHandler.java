@@ -5,6 +5,7 @@ import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -99,6 +101,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthorizationDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAuthorizationDeniedException(AuthorizationDeniedException ex) {
         return error(HttpStatus.FORBIDDEN, "FORBIDDEN", "Access denied.", ex.getMessage());
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponse> handleMethodValidationException(HandlerMethodValidationException ex) {
+        if (ex.isForReturnValue()) {
+            return handleGenericException(ex);
+        }
+        var violations = ex.getAllValidationResults().stream()
+                .flatMap(result -> result.getResolvableErrors().stream())
+                .map(MessageSourceResolvable::getDefaultMessage)
+                .toList();
+        return error(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Request validation failed.",
+                Map.of("violations", violations));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
