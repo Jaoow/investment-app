@@ -4,6 +4,7 @@ import dev.jaoow.investmentapp.application.dto.request.PortfolioRequest;
 import dev.jaoow.investmentapp.application.dto.response.PortfolioResponse;
 import dev.jaoow.investmentapp.application.exception.PortfolioNotFoundException;
 import dev.jaoow.investmentapp.application.service.user.UserService;
+import dev.jaoow.investmentapp.application.service.movement.PositionLedger;
 import dev.jaoow.investmentapp.domain.entity.Portfolio;
 import dev.jaoow.investmentapp.domain.entity.user.User;
 import dev.jaoow.investmentapp.domain.repository.PortfolioRepository;
@@ -23,11 +24,14 @@ public class PortfolioService {
     private final PortfolioRepository portfolioRepository;
     private final ModelMapper modelMapper;
     private final UserService userService;
+    private final PositionLedger ledger;
 
-    public PortfolioService(PortfolioRepository portfolioRepository, ModelMapper modelMapper, UserService userService) {
+    public PortfolioService(PortfolioRepository portfolioRepository, ModelMapper modelMapper, UserService userService,
+                            PositionLedger ledger) {
         this.portfolioRepository = portfolioRepository;
         this.modelMapper = modelMapper;
         this.userService = userService;
+        this.ledger = ledger;
     }
 
     @Transactional(readOnly = true)
@@ -63,8 +67,7 @@ public class PortfolioService {
     @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#id, authentication)")
     @Transactional
     public PortfolioResponse updatePortfolio(Long id, PortfolioRequest portfolioRequest) {
-        Portfolio portfolio = portfolioRepository.findById(id)
-                .orElseThrow(() -> new PortfolioNotFoundException(id));
+        Portfolio portfolio = ledger.lock(id);
 
         portfolio.setName(portfolioRequest.getName());
         portfolio = portfolioRepository.save(portfolio);
@@ -75,8 +78,7 @@ public class PortfolioService {
     @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#id, authentication)")
     @Transactional
     public void deletePortfolio(Long id) {
-        Portfolio portfolio = portfolioRepository.findById(id)
-                .orElseThrow(() -> new PortfolioNotFoundException(id));
+        Portfolio portfolio = ledger.lock(id);
 
         portfolio.getAssetMovements().clear();
         portfolioRepository.delete(portfolio);

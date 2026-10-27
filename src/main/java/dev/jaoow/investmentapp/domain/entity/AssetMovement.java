@@ -33,4 +33,20 @@ public class AssetMovement {
     
     @Column(name = "external_reference", unique = true)
     private String externalReference;
+
+    @Column(precision = 38, scale = 8)
+    private BigDecimal adjustmentQuantity;
+    @Column(precision = 38, scale = 8)
+    private BigDecimal adjustmentTotalCost;
+    @Column(precision = 38, scale = 8)
+    private BigDecimal previousQuantity;
+    @Column(precision = 64, scale = 16)
+    private BigDecimal previousTotalCost;
+    @Column(name = "adjustment_reason")
+    private String reason;
+    private String adjustmentAuthor;
+    private java.time.Instant adjustmentRecordedAt;
+    private java.util.UUID adjustmentRequestId;
+    private Long adjustmentExpectedRevision;
+    private Long adjustmentResultRevision;
 }

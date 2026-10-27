@@ -97,6 +97,26 @@ Tests use H2 with the same migrations. Movement and asset-setting integration te
 mock the market ticker provider so ticker registration does not depend on network
 access. H2 checks do not replace PostgreSQL query-plan or concurrency validation.
 
+## Minimal request observability
+
+Every synchronous MVC request receives an `X-Correlation-ID` response header,
+including requests rejected by authentication. A supplied canonical-format UUID
+is accepted and normalized to lowercase; other values are replaced with a generated
+UUID. Application logs include the ID through MDC, restored after each request.
+
+The `investize.http.access` logger emits one JSON event per request to stdout:
+`timestamp`, `event`, `correlationId`, `method`, `route`, `status`, `durationMs`.
+`route` is the Spring mapping template, never the raw URL; requests rejected before
+handler resolution use `UNMAPPED`. Headers, bodies, query strings and share tokens
+are not included in this access event. Other application/error logs retain their
+text format with the correlation ID; this is not distributed or asynchronous tracing.
+Existing application logs still require their own privacy review.
+
+`GET /v1/health` returns `{"status":"UP"}` to authenticated users and HTTP 401 to
+anonymous callers, preserving the existing security policy. It is process liveness,
+not PostgreSQL readiness or a market-provider availability check. Use an authenticated
+monitor if required; retention, aggregation and alerting remain deployment concerns.
+
 ## Web frontend
 
 The mobile-first React SPA is maintained in a separate repository and is not
@@ -110,6 +130,10 @@ key in frontend environment variables.
 
 - JWT authentication and portfolio CRUD under `/auth` and `/v1/portfolio`.
 - Portfolio holdings/movements and XLSX import under `/v1/portfolio/{portfolioId}/movement`.
+  Movement history supports pagination. The SPA requests 25 rows with stable ordering:
+  `GET .../movement?page=0&size=25&sort=date,desc&sort=id,desc`.
+  Page numbers are zero-based. Offset pages are deterministic for an unchanged
+  dataset, not a snapshot across concurrent writes.
   The internal movement template is available at
   `GET /v1/portfolio/{portfolioId}/movement/import-template?type=movements` and
   is imported with `POST .../movement/import`. A current-position template,
@@ -117,6 +141,30 @@ key in frontend environment variables.
   `type=positions` and imported with `POST .../movement/position-import`.
   Position imports replace the portfolio's existing movements with a snapshot
   represented by dated buy movements; the B3 import remains a separate flow.
+- Atomic position corrections use `GET /v1/portfolio/{portfolioId}/positions/{ticker}`
+  to read exact `quantity`, `totalCost` and portfolio-wide `revision`, followed by
+  `PUT` on the same endpoint with `quantity`, `totalCost`, `expectedRevision`,
+  `requestId` (UUID) and mandatory `reason` (up to 500 characters).
+  Send the remaining acquisition cost, not market value or a rounded average price.
+  Targets accept up to eight decimal places; the editor requires explicit
+  correction of higher precision rather than silently rounding. Audit records
+  preserve previous remaining costs to 16 decimal places. Partial sales deduct
+  proportional cost at that precision, avoiding negative rounding residues.
+  Reuse the same UUID and payload when retrying an uncertain response; an identical
+  retry returns the original result without another adjustment. A changed payload
+  using that UUID or a stale revision returns HTTP 409.
+  One transaction records a `POSITION_ADJUSTMENT` with previous/target values,
+  author and timestamp; purchases and sales remain distinct. All financial
+  writers serialize on the portfolio row. Adjustments take effect today in
+  `America/Sao_Paulo`; future-dated operations on that ticker prevent adjustment.
+  After the first adjustment, historical edits/deletions and destructive position
+  imports are blocked for the portfolio. New trades/B3 imports cannot precede
+  an adjustment on their ticker. Invalid historical ledgers require separate
+  reconciliation, not silent rewriting.
+  **Deployment:** apply additive migration V11 and deploy API/SPA together.
+  Old API instances must not keep writing or reading once adjustments are used;
+  rolling back to code unaware of `POSITION_ADJUSTMENT` is not supported.
+  Existing synthetic BUY/SELL corrections are not automatically reclassified.
 - Category/asset targets under `/v1/portfolio/{portfolioId}/allocations`.
 - Current quote endpoint `GET /v1/quotes?ticker=...`.
 - Portfolio overview accepts `includeQuotes=false` for detail screens that

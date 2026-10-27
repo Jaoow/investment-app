@@ -5,6 +5,8 @@ import dev.jaoow.investmentapp.application.dto.b3.B3NegotiationSnapshotDto;
 import dev.jaoow.investmentapp.application.dto.response.B3ImportResultResponse;
 import dev.jaoow.investmentapp.application.exception.B3ImportException;
 import dev.jaoow.investmentapp.application.exception.PortfolioNotFoundException;
+import dev.jaoow.investmentapp.application.exception.PositionConflictException;
+import dev.jaoow.investmentapp.application.service.movement.PositionLedger;
 import dev.jaoow.investmentapp.domain.entity.AssetMovement;
 import dev.jaoow.investmentapp.domain.entity.B3ImportHistory;
 import dev.jaoow.investmentapp.domain.entity.Portfolio;
@@ -40,6 +42,7 @@ public class B3NegotiationImportService {
     private final PortfolioRepository portfolioRepository;
     private final UserRepository userRepository;
     private final dev.jaoow.investmentapp.infrastructure.client.BrapiClient brapiClient;
+    private final PositionLedger ledger;
 
     public B3NegotiationImportService(
             B3NegotiationFileParser fileParser,
@@ -47,20 +50,20 @@ public class B3NegotiationImportService {
             AssetMovementRepository assetMovementRepository,
             PortfolioRepository portfolioRepository,
             UserRepository userRepository,
-            dev.jaoow.investmentapp.infrastructure.client.BrapiClient brapiClient) {
+            dev.jaoow.investmentapp.infrastructure.client.BrapiClient brapiClient,
+            PositionLedger ledger) {
         this.fileParser = fileParser;
         this.importHistoryRepository = importHistoryRepository;
         this.assetMovementRepository = assetMovementRepository;
         this.portfolioRepository = portfolioRepository;
         this.userRepository = userRepository;
         this.brapiClient = brapiClient;
+        this.ledger = ledger;
     }
 
     @Transactional
     @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#portfolioId, authentication)")
     public B3ImportResultResponse importNegotiations(Long portfolioId, MultipartFile file, Principal principal) {
-        Portfolio portfolio = portfolioRepository.findById(portfolioId)
-                .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
         User user = userRepository.findByEmail(principal.getName()).orElseThrow();
 
         // 1. Parse File
@@ -68,6 +71,7 @@ public class B3NegotiationImportService {
 
         // Resolve old tickers
         resolveTickers(snapshot.getItems());
+        Portfolio portfolio = ledger.lock(portfolioId);
 
         // Idempotency: check if exact file was imported
         importHistoryRepository.findByPortfolioIdAndFileHash(portfolioId, snapshot.getFileHash())
@@ -117,13 +121,17 @@ public class B3NegotiationImportService {
 
             // 3. Persist new movements
             if (!newMovements.isEmpty()) {
+                ledger.validateAppend(ledger.history(portfolioId), newMovements);
                 assetMovementRepository.saveAll(newMovements);
+                ledger.advance(portfolio);
             }
 
             history.setNewNegotiations(newMovements.size());
             history.setAlreadyImported(alreadyImported);
             history.setStatus(B3ImportStatus.SUCCESS);
             
+        } catch (PositionConflictException e) {
+            throw e;
         } catch (Exception e) {
             history.setStatus(B3ImportStatus.FAILED);
             history.setErrorMessage(e.getMessage());

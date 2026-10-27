@@ -16,6 +16,8 @@ public class Portfolio {
 
     private String name;
 
+    private long positionRevision;
+
     @OneToMany(mappedBy = "portfolio", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AssetMovement> assetMovements = new LinkedList<>();
 

@@ -24,6 +24,11 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(PositionConflictException.class)
+    public ResponseEntity<ErrorResponse> handlePositionConflict(PositionConflictException ex) {
+        return error(HttpStatus.CONFLICT, "POSITION_CONFLICT", ex.getMessage(), null);
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
         return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "Resource not found.", ex.getMessage());

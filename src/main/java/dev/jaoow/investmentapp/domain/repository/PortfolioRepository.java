@@ -13,6 +13,10 @@ import java.util.Optional;
 @Repository
 public interface PortfolioRepository extends JpaRepository<Portfolio, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select p from Portfolio p where p.id = :id")
+    Optional<Portfolio> findByIdForPositionUpdate(@org.springframework.data.repository.query.Param("id") Long id);
+
     List<Portfolio> findByUser(User user);
 
     Optional<Portfolio> findByIdAndUser(Long id, User user);

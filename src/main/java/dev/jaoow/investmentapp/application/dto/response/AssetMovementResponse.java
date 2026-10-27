@@ -15,4 +15,11 @@ public class AssetMovementResponse {
     private BigDecimal operationCost;
     private LocalDate date;
     private MovementType type;
+    private BigDecimal adjustmentQuantity;
+    private BigDecimal adjustmentTotalCost;
+    private BigDecimal previousQuantity;
+    private BigDecimal previousTotalCost;
+    private String reason;
+    private String adjustmentAuthor;
+    private java.time.Instant adjustmentRecordedAt;
 }

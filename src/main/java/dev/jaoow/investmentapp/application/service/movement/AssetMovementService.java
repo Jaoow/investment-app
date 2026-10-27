@@ -22,7 +22,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.List;
 
@@ -33,15 +32,17 @@ public class AssetMovementService {
     private final PortfolioRepository portfolioRepository;
     private final TickerRepository tickerRepository;
     private final ModelMapper modelMapper;
+    private final PositionLedger ledger;
 
     public AssetMovementService(AssetMovementRepository assetMovementRepository,
                                 PortfolioRepository portfolioRepository,
                                 TickerRepository tickerRepository,
-                                ModelMapper modelMapper) {
+                                ModelMapper modelMapper, PositionLedger ledger) {
         this.assetMovementRepository = assetMovementRepository;
         this.portfolioRepository = portfolioRepository;
         this.tickerRepository = tickerRepository;
         this.modelMapper = modelMapper;
+        this.ledger = ledger;
     }
 
     @Transactional(readOnly = true)
@@ -57,18 +58,23 @@ public class AssetMovementService {
 
     @Transactional
     public List<AssetMovementResponse> createAssetMovementsBulk(Long portfolioId, List<AssetMovementRequest> assetMovementRequests) {
-        Portfolio portfolio = portfolioRepository.findById(portfolioId)
-                .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
+        Portfolio portfolio = ledger.lock(portfolioId);
 
         List<AssetMovement> assetMovements = assetMovementRequests.stream()
                 .map(request -> {
+                    if (request.getType() != MovementType.BUY && request.getType() != MovementType.SELL) {
+                        throw new InvalidPortfolioPositionException("Use o endpoint de ajuste para corrigir a posição.");
+                    }
                     AssetMovement assetMovement = modelMapper.map(request, AssetMovement.class);
+                    assetMovement.setTickerSymbol(TickerSymbol.normalize(request.getTickerSymbol()));
                     assetMovement.setPortfolio(portfolio);
                     return assetMovement;
                 })
                 .toList();
 
+        ledger.validateAppend(ledger.history(portfolioId), assetMovements);
         assetMovements = assetMovementRepository.saveAll(assetMovements);
+        ledger.advance(portfolio);
 
         return assetMovements.stream()
                 .map(movement -> modelMapper.map(movement, AssetMovementResponse.class))
@@ -83,13 +89,6 @@ public class AssetMovementService {
             throw new InvalidTickerException("O ativo " + symbol + " não está cadastrado. Selecione-o pela busca de ativos.");
         }
         assetMovementRequest.setTickerSymbol(symbol);
-        if (assetMovementRequest.getType() == MovementType.SELL) {
-            BigDecimal held = assetMovementRepository.sumNetQuantity(portfolioId, symbol);
-            if (assetMovementRequest.getQuantity().compareTo(held) > 0) {
-                throw new InvalidPortfolioPositionException(
-                        "Quantidade de venda maior que a posição atual de " + symbol + " (" + held.stripTrailingZeros().toPlainString() + ").");
-            }
-        }
         List<AssetMovementRequest> requests = List.of(assetMovementRequest);
         return createAssetMovementsBulk(portfolioId, requests).getFirst();
     }
@@ -111,8 +110,11 @@ public class AssetMovementService {
     @PreAuthorize("hasRole('USER') and @assetMovementSecurity.isOwner(#movementId, authentication)")
     @Transactional
     public AssetMovementResponse updateAssetMovement(Long portfolioId, Long movementId, AssetMovementRequest assetMovementRequest) {
-        portfolioRepository.findById(portfolioId)
-                .orElseThrow(() -> new PortfolioNotFoundException(portfolioId));
+        Portfolio portfolio = ledger.lock(portfolioId);
+        ledger.requireMutableHistory(ledger.history(portfolioId));
+        if (assetMovementRequest.getType() != MovementType.BUY && assetMovementRequest.getType() != MovementType.SELL) {
+            throw new InvalidPortfolioPositionException("Use o endpoint de ajuste para corrigir a posição.");
+        }
 
         AssetMovement assetMovement = assetMovementRepository.findById(movementId)
                 .orElseThrow(() -> new AssetMovementNotFoundException(movementId));
@@ -122,7 +124,10 @@ public class AssetMovementService {
         }
 
         modelMapper.map(assetMovementRequest, assetMovement);
+        assetMovement.setTickerSymbol(TickerSymbol.normalize(assetMovementRequest.getTickerSymbol()));
+        ledger.consolidate(ledger.history(portfolioId));
         assetMovement = assetMovementRepository.save(assetMovement);
+        ledger.advance(portfolio);
 
         return modelMapper.map(assetMovement, AssetMovementResponse.class);
     }
@@ -130,6 +135,9 @@ public class AssetMovementService {
     @PreAuthorize("hasRole('USER') and @assetMovementSecurity.isOwner(#movementId, authentication)")
     @Transactional
     public void deleteAssetMovement(Long portfolioId, Long movementId) {
+        Portfolio portfolio = ledger.lock(portfolioId);
+        List<AssetMovement> history = ledger.history(portfolioId);
+        ledger.requireMutableHistory(history);
         AssetMovement assetMovement = assetMovementRepository.findById(movementId)
                 .orElseThrow(() -> new AssetMovementNotFoundException(movementId));
 
@@ -137,6 +145,8 @@ public class AssetMovementService {
             throw new PortfolioMismatchException(portfolioId, movementId);
         }
 
+        ledger.consolidate(history.stream().filter(m -> !m.getId().equals(movementId)).toList());
         assetMovementRepository.delete(assetMovement);
+        ledger.advance(portfolio);
     }
 }

@@ -54,6 +54,22 @@ class AssetConsolidationServiceTests {
         assertEquals(new BigDecimal("23.50"), result.getInvestedAmount());
     }
 
+    @Test
+    void partialSaleDoesNotTurnSmallAdjustedCostNegative() {
+        AssetMovement adjustment = new AssetMovement();
+        adjustment.setTickerSymbol("ABC");
+        adjustment.setType(MovementType.POSITION_ADJUSTMENT);
+        adjustment.setAdjustmentQuantity(new BigDecimal("3"));
+        adjustment.setAdjustmentTotalCost(new BigDecimal("0.00000002"));
+        Portfolio portfolio = new Portfolio();
+        portfolio.setAssetMovements(List.of(adjustment, movement("ABC", "2.9", "1", MovementType.SELL)));
+
+        AssetConsolidation result = service.processAssetMovements(portfolio).getFirst();
+
+        assertEquals(0, new BigDecimal("0.1").compareTo(result.getTotalQuantity()));
+        assertEquals(0, new BigDecimal("0.0000000006666667").compareTo(result.getInvestedAmount()));
+    }
+
     private AssetMovement movement(String ticker, String quantity, String price, MovementType type) {
         AssetMovement movement = new AssetMovement();
         movement.setTickerSymbol(ticker);

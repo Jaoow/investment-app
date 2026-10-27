@@ -28,24 +28,26 @@ public class AssetPositionImportService {
     private final PortfolioRepository portfolioRepository;
     private final AssetMovementRepository assetMovementRepository;
     private final ModelMapper modelMapper;
+    private final PositionLedger ledger;
 
     public AssetPositionImportService(AssetPositionFileProcessor fileProcessor,
                                       PortfolioRepository portfolioRepository,
                                       AssetMovementRepository assetMovementRepository,
-                                      ModelMapper modelMapper) {
+                                      ModelMapper modelMapper, PositionLedger ledger) {
         this.fileProcessor = fileProcessor;
         this.portfolioRepository = portfolioRepository;
         this.assetMovementRepository = assetMovementRepository;
         this.modelMapper = modelMapper;
+        this.ledger = ledger;
     }
 
     @Transactional
     @PreAuthorize("hasRole('USER') and @portfolioSecurity.isOwner(#portfolioId, authentication)")
     public List<AssetMovementResponse> importCurrentPositions(Long portfolioId, MultipartFile file) {
-        Portfolio portfolio = portfolioRepository.findById(portfolioId)
-                .orElseThrow(() -> new dev.jaoow.investmentapp.application.exception.PortfolioNotFoundException(portfolioId));
         try {
             List<AssetPositionRequest> positions = fileProcessor.processExcelFile(file);
+            Portfolio portfolio = ledger.lock(portfolioId);
+            ledger.requireMutableHistory(ledger.history(portfolioId));
             assetMovementRepository.deleteAllByPortfolio(portfolio);
             portfolio.getAssetMovements().clear();
             LocalDate importDate = LocalDate.now();
@@ -63,6 +65,7 @@ public class AssetPositionImportService {
                 movement.setType(MovementType.BUY);
                 return movement;
             }).toList();
+            ledger.advance(portfolio);
             return assetMovementRepository.saveAll(movements).stream()
                     .map(movement -> modelMapper.map(movement, AssetMovementResponse.class))
                     .toList();
